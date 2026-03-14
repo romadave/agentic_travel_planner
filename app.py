@@ -168,6 +168,6 @@ output_file = f"Trip_{trip_request['origin']}_to_{trip_request['destination']}_{
 # index=False prevents pandas from adding an unnecessary index column.
 with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
     flights_df.to_excel(writer, sheet_name='Flights', index=False)
-    hotels_df.to_excel(writer, sheet_name='Hotels', index=False)
-    
+    hotel_df.to_excel(writer, sheet_name='Hotels', index=False)
+
 print(f"\nExcel file created: {output_file}")

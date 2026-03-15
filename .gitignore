@@ -16,10 +16,85 @@ build/
 # Environment variables (sensitive data)
 backend/.env
 
-# Xcode
-DerivedData/
-*.xcworkspace
-xcuserdata/
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Mac-os
+*.egg-info/
+.eggs/
+dist/
+build/
+
+.mypy_cache/
+.pytest_cache/
+
+.env
+.env.*
+
+############################################
+# macOS
+############################################
+
 .DS_Store
+.AppleDouble
+.LSOverride
+
+############################################
+# Xcode / iOS
+############################################
+
+# Build products
+build/
+DerivedData/
+
+# User-specific files
+*.xcworkspace
+!default.xcworkspace
+*.xcuserstate
+*.xcuserdata
+
+# Swift Package Manager
+.swiftpm/
+.build/
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Xcode Archives
+*.xcarchive
+
+############################################
+# Simulator
+############################################
+
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+############################################
+# Logs
+############################################
+
+*.log
+
+############################################
+# VSCode
+############################################
+
+.vscode/
+
+############################################
+# Misc
+############################################
+
+coverage/
+tmp/
+temp/

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from google import genai
 
-from backend.agents.flight_agent import rank_flights_with_gemini
+from agents.flight_agent import rank_flights_with_gemini
 
 router = APIRouter(tags=["Flights"])
 

@@ -5,9 +5,9 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from google import genai
 
-from backend.agents.flight_agent import rank_flights_with_gemini
-from backend.agents.hotel_agent import fetch_hotels
-from backend.services.excel_writer import add_multiple_sheets_to_excel, create_data_frame
+from agents.flight_agent import rank_flights_with_gemini
+from agents.hotel_agent import fetch_hotels
+from services.excel_writer import add_multiple_sheets_to_excel, create_data_frame
 
 router = APIRouter(tags=["Reports"])
 

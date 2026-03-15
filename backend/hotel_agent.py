@@ -1,4 +1,4 @@
-def fetch_hotels():
+def fetch_hotels(trip_request):
     hotels = [
         {
             "hotel_name": "Central Family Suites",

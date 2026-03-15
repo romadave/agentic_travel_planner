@@ -22,4 +22,4 @@ def add_multiple_sheets_to_excel(trip_request, sheets_data):
         for sheet_name, data_frame in sheets_data.items():
             data_frame.to_excel(writer, sheet_name=sheet_name, index=False)
 
-    print(f"\nExcel file created/updated: {output_file}")
+    return output_file

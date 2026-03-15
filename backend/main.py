@@ -3,12 +3,18 @@ from google import genai
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel
-from flight_agent import rank_flights_with_gemini
-from hotel_agent import fetch_hotels
-from excel_writer import add_multiple_sheets_to_excel, create_data_frame
-from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from routers import flights, hotels, reports
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # allow all origins (good for development)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # reads the .env file in your project and loads the values inside it into environment variables.
 load_dotenv()
@@ -31,40 +37,6 @@ class TripRequest(BaseModel):
 def root():
     return {"message": "Travel Planner API is running"}
 
-@app.post("/rank-flights")
-def rank_flights(trip_request:TripRequest):
-    ranked_flights = rank_flights_with_gemini(trip_request=trip_request.model_dump(), client=client)
-
-    return {
-        "trip_request":trip_request.model_dump(),
-        "ranked_flights":ranked_flights
-    }
-
-# TODO : accept trip request as part of the prompt
-@app.post("/rank-hotels")
-def rank_hotels(trip_request:TripRequest):
-    ranked_hotels = fetch_hotels(trip_request=trip_request.model_dump())
-
-    return {
-        "trip_request":trip_request.model_dump(),
-        "ranked_hotels":ranked_hotels
-    }
-
-@app.post("/generate-report")
-def generate_report(trip_request:TripRequest):
-    ranked_flights = rank_flights_with_gemini(trip_request=trip_request.model_dump(), client=client)
-    ranked_hotels = fetch_hotels()
-
-    flights_df = create_data_frame(ranked_flights)
-    hotels_df = create_data_frame(ranked_hotels)
-
-    output_file = add_multiple_sheets_to_excel(trip_request=trip_request.model_dump(), sheets_data={
-        "Flights":flights_df,
-        "Hotels":hotels_df
-    })
-
-    return FileResponse(
-        path = output_file,
-        filename = output_file,
-        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+app.include_router(flights.router)
+app.include_router(hotels.router)
+app.include_router(reports.router)

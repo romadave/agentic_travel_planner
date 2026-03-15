@@ -30,7 +30,24 @@ This is great -> Fast API automatically generates OpenAI spec and Swagger UI -> 
 Basically a built-in testing tool for our endpoints
 An interactive API playground.
 
+# CORS support
+CORS = Cross origin resource sharing
+browser security rule that controls which apps are allowed to call our API
+If the origins are different, the browser blocks the request unless the server explicitly allows it.
+
+What is "origin"?
+protocal + domain + port
+Example : 
+http://localhost:3000
+http://127.0.0.1:8000
+https://example.com
+
+When we add these CORS support -> essentially we are saying this origin is allowed to access our API
+FastAPI handles this using CORS middleware.
+Middleware is simply code that runs before requests reach your endpoints.
+
 # routers
+mini-collection of our endpoints
 # services
 # schemas
 # agents

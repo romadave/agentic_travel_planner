@@ -5,7 +5,7 @@ def create_data_frame(information):
     return pd.DataFrame(information)
 
 def get_output_file(trip_request):
-    output_file = f"Trip_{trip_request['origin']}_to_{trip_request['destination']}_{trip_request['departure_date']}.xlsx"
+    output_file = f"reports/Trip_{trip_request['origin']}_to_{trip_request['destination']}_{trip_request['departure_date']}.xlsx"
     
     if os.path.exists(output_file):
         print(f"Updating existing workbook: {output_file}")

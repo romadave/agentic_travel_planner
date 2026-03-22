@@ -51,26 +51,29 @@ struct TripRequestEvaluator {
             missing.append(.travelDates)
         }
 
-        if draft.travelers.travelerCount == nil || (draft.travelers.travelerCount ?? 0) <= 0 {
+        let travelerCount = draft.travelers.travelerCount ?? 0
+        if travelerCount <= 0 {
             missing.append(.travelerCount)
         }
 
-        if draft.travelers.hasKids == nil {
+        let hasKidsValue = draft.travelers.hasKids
+        if hasKidsValue == nil {
             missing.append(.hasKids)
         }
 
-        if (draft.travelers.hasKids ?? false) && draft.travelers.youngestTravelerAge == nil {
+        if (hasKidsValue ?? false) && draft.travelers.youngestTravelerAge == nil {
             missing.append(.youngestTravelerAge)
         }
 
-        let hasAnyTransportMode =
-        draft.transportPreferences.flightSelected ||
-                    draft.transportPreferences.roadSelected ||
-                    draft.transportPreferences.trainSelected
-        
+        let flightSelected = draft.transportPreferences.flightSelected ?? false
+        let roadSelected = draft.transportPreferences.roadSelected ?? false
+        let trainSelected = draft.transportPreferences.trainSelected ?? false
+        let hasAnyTransportMode = flightSelected || roadSelected || trainSelected
+
         if !hasAnyTransportMode {
-                    missing.append(.transportMode)
-                }
+            missing.append(.transportMode)
+        }
+        
         let nextRequirement = missing.first
         let isReady = missing.isEmpty
 

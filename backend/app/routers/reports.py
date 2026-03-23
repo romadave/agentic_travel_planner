@@ -1,24 +1,12 @@
-import os
 from fastapi import APIRouter
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from dotenv import load_dotenv
-from google import genai
 
-from agents.flight_agent import rank_flights_with_gemini
-from agents.hotel_agent import fetch_hotels
-from services.excel_writer import add_multiple_sheets_to_excel, create_data_frame
+from app.agents.flight_agent import rank_flights_with_gemini
+from app.agents.hotel_agent import fetch_hotels
+from app.services.excel_writer import add_multiple_sheets_to_excel, create_data_frame
 
 router = APIRouter(tags=["Reports"])
-
-load_dotenv()
-
-api_key = os.getenv("GEMINI_API_KEY")
-if not api_key:
-    raise ValueError("GEMINI_API_KEY not found in .env")
-
-client = genai.Client(api_key=api_key)
-
 
 class TripRequest(BaseModel):
     origin: str
@@ -31,9 +19,7 @@ class TripRequest(BaseModel):
 @router.post("/generate-report")
 def generate_report(trip_request: TripRequest):
     ranked_flights = rank_flights_with_gemini(
-        trip_request=trip_request.model_dump(),
-        client=client
-    )
+        trip_request=trip_request.model_dump())
 
     ranked_hotels = fetch_hotels()
 

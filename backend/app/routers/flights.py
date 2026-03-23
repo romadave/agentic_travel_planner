@@ -1,21 +1,9 @@
-import os
 from fastapi import APIRouter
 from pydantic import BaseModel
-from dotenv import load_dotenv
-from google import genai
 
-from agents.flight_agent import rank_flights_with_gemini
+from app.agents.flight_agent import rank_flights_with_gemini
 
 router = APIRouter(tags=["Flights"])
-
-load_dotenv()
-
-api_key = os.getenv("GEMINI_API_KEY")
-if not api_key:
-    raise ValueError("GEMINI_API_KEY not found in .env")
-
-client = genai.Client(api_key=api_key)
-
 
 class TripRequest(BaseModel):
     origin: str
@@ -28,9 +16,7 @@ class TripRequest(BaseModel):
 @router.post("/rank-flights")
 def rank_flights(trip_request: TripRequest):
     ranked_flights = rank_flights_with_gemini(
-        trip_request=trip_request.model_dump(),
-        client=client
-    )
+        trip_request=trip_request.model_dump())
 
     return {
         "trip_request": trip_request.model_dump(),

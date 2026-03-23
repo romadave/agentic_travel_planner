@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from agents.hotel_agent import fetch_hotels
+from app.agents.hotel_agent import fetch_hotels
 
 router = APIRouter(tags=["Hotels"])
 

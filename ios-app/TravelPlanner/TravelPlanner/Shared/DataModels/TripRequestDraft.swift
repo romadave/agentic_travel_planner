@@ -16,42 +16,17 @@ import Foundation
 // evaluator figures out what we have / missing
 // helps forms the next 2-4 screens
 struct TripRequestDraft: Codable, Equatable, Sendable {
-    var route = Route()
-    var schedule = Schedule()
-    var travelers = Travelers()
-    var transportPreferences = TransportPreferences()
-    var lodgingPreferences = LodgingPreferences()
+    var route: Route = Route()
+    var schedule: Schedule = Schedule()
+    var travelerInfo: TravelerInfo = TravelerInfo()
+    var transportPreferences: TransportPreferences = TransportPreferences()
+    var lodgingPreferences: LodgingPreferences = LodgingPreferences()
 }
 
-extension TripRequestDraft {
-    struct Route: Codable, Equatable, Sendable {
-        var origin: String = ""
-        var destination: String = ""
-        var stops: [String] = []
-    }
 
-    struct Schedule: Codable, Equatable, Sendable {
-        var departureDate: Date? = nil
-        var returnDate: Date? = nil
-    }
 
-    struct Travelers: Codable, Equatable, Sendable {
-        var travelerCount: Int? = nil
-        var hasKids: Bool? = nil
-        var youngestTravelerAge: Int? = nil
-    }
 
-    struct TransportPreferences: Codable, Equatable, Sendable {
-        var flightSelected: Bool? = nil
-        var roadSelected: Bool? = nil
-        var trainSelected: Bool? = nil
-        var redEye: Bool? = nil
-        var budgetFlight: Bool? = nil
-    }
 
-    struct LodgingPreferences: Codable, Equatable, Sendable {
-        var hotel: Bool? = nil
-        var airbnb: Bool? = nil
-        var both: Bool? = nil
-    }
-}
+
+
+

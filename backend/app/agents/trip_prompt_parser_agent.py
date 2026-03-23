@@ -79,7 +79,7 @@ def extract_json_from_text(raw_text: str) -> Dict[str, Any]:
     json_str = raw_text[start:end + 1]
     return json.loads(json_str)
 
-def parse_trip_prompt(user_prompt:str) -> Dict[str, Any]:
+def parse_trip(user_prompt:str) -> Dict[str, Any]:
     prompt = get_user_prompt(user_prompt=user_prompt)
     response = gemini_client.generate_text(model='gemini-2.5-flash', user_prompt=prompt, system_prompt=SYSTEM_PROMPT)
     return extract_json_from_text(response)

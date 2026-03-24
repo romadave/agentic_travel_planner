@@ -51,7 +51,7 @@ JSON schema:
     "budgetTrain": "boolean | null",
     "privateCabinPreferred": "boolean | null"
   },
-  "travelers": {
+  "travelerInfo": {
     "travelerCount": "integer | null",
     "hasKids": "boolean | null",
     "youngestTravelerAge": "integer | null"

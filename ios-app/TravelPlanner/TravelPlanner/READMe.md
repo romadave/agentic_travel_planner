@@ -19,3 +19,12 @@ Why SwiftUI uses struct for views?
 - more performative
 - when you pass in new / assign a view it creates an independent copy
 - reduces / prevents side effects from shared, mutable state making the UI behaviro much easier to reason about and debug
+
+#Views
+#ViewModel
+#MainActor
+#Observable
+#Codable
+#Equatable
+#Sendable
+#Published - basically if the value of a property changes -> it automatically sends updates to its subscribers. 

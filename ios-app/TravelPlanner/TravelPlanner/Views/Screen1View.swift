@@ -10,7 +10,7 @@ import SwiftUI
 struct Screen1View: View {
     // Holds the user's freeform trip description typed into the TextEditor.
     // Using @State so the view updates as the user types.
-    @State private var tripPrompt: String = ""
+    @StateObject private var viewModel = TripDraftViewModel()
     
     var body: some View {
         ZStack {
@@ -56,7 +56,9 @@ struct Screen1View: View {
             // Custom PrimaryButton stretches horizontally (maxWidth: .infinity inside it).
             // We add horizontal padding so it aligns with the card’s inner margins.
             PrimaryButton {
-                print("Trip Prompt")
+                Task {
+                    await viewModel.submitPrompt()
+                }
             } content: {
                 Text("Start Planning")
                     .font(.system(size: 20, weight: .semibold))
@@ -117,7 +119,7 @@ struct Screen1View: View {
                 ZStack(alignment: .topLeading) {
                     // TextEditor expands vertically based on frame constraints.
                     // We keep the style plain for a minimal look.
-                    TextEditor(text: $tripPrompt)
+                    TextEditor(text: $viewModel.userPrompt)
                         .font(.system(size: 17))
                         .textFieldStyle(.plain)
                         // Tiny horizontal padding so text doesn’t touch the border.
@@ -127,7 +129,7 @@ struct Screen1View: View {
                     
                     // Manual placeholder: shown only when tripPrompt is empty.
                     // ZStack with alignment lets us place it at the top-left.
-                    if tripPrompt.isEmpty {
+                    if viewModel.userPrompt.isEmpty {
                         Text("Or describe your trip")
                             .font(.system(size: 17))
                             .foregroundColor(Color.black.opacity(0.3))

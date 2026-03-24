@@ -1,10 +1,7 @@
-import os
-from google import genai
-from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from routers import flights, hotels, reports
+from app.routers import flights, hotels, reports, parse_trip
 
 app = FastAPI()
 
@@ -15,15 +12,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# reads the .env file in your project and loads the values inside it into environment variables.
-load_dotenv()
-api_key = os.getenv('GEMINI_API_KEY')
-
-if not api_key:
-    raise ValueError('Gemini API key not found in .env')
-
-client = genai.Client(api_key=api_key)
 
 class TripRequest(BaseModel):
     origin:str
@@ -40,3 +28,4 @@ def root():
 app.include_router(flights.router)
 app.include_router(hotels.router)
 app.include_router(reports.router)
+app.include_router(parse_trip.router, tags=['parse-trip'])

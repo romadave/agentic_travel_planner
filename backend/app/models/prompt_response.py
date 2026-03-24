@@ -29,7 +29,7 @@ class TransportPreferences(BaseModel):
     privateCabinPreferred: Optional[bool] = None
 
 
-class Travelers(BaseModel):
+class TravelerInfo(BaseModel):
     travelerCount: Optional[int] = None
     hasKids: Optional[bool] = None
     youngestTravelerAge: Optional[int] = None
@@ -40,7 +40,7 @@ class ParsedPromptResult(BaseModel):
     schedule: ParsedPromptSchedule = ParsedPromptSchedule()
     lodgingPreferences: LodgingPreferences = LodgingPreferences()
     transportPreferences: TransportPreferences = TransportPreferences()
-    travelers: Travelers = Travelers()
+    travelerInfo: TravelerInfo = TravelerInfo()
 
 class ParseTripPromptResponse(BaseModel):
     prompt: str

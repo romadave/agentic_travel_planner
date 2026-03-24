@@ -34,17 +34,17 @@ struct TripRequestEvaluator {
             missing.append(.travelDates)
         }
 
-        let travelerCount = draft.travelers.travelerCount ?? 0
+        let travelerCount = draft.travelerInfo.travelerCount ?? 0
         if travelerCount <= 0 {
             missing.append(.travelerCount)
         }
 
-        let hasKidsValue = draft.travelers.hasKids
+        let hasKidsValue = draft.travelerInfo.hasKids
         if hasKidsValue == nil {
             missing.append(.hasKids)
         }
 
-        if (hasKidsValue ?? false) && draft.travelers.youngestTravelerAge == nil {
+        if (hasKidsValue ?? false) && draft.travelerInfo.youngestTravelerAge == nil {
             missing.append(.youngestTravelerAge)
         }
 

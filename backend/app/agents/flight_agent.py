@@ -1,5 +1,6 @@
 
 import json
+from app.client.gemini_client import gemini_client
 
 def parse_json_response(text):
     cleaned = text.strip()
@@ -94,10 +95,10 @@ def get_prompt(trip_request, flights):
     return prompt
 
 
-def rank_flights_with_gemini(trip_request, client):
+def rank_flights_with_gemini(trip_request):
     flights = fetch_flights()
     prompt = get_prompt(trip_request=trip_request, flights=flights)
-    response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
+    response = gemini_client.generate_text(model='gemini-2.5-flash', user_prompt=prompt)
     parsed = parse_json_response(response.text)
 
     flight_lookup = {f["airline"]: f for f in flights}

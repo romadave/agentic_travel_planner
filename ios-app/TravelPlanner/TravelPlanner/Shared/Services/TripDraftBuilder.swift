@@ -11,6 +11,7 @@ struct TripDraftBuilder {
     private let dateParser = DateParser()
 
     func build(from parsed: ParsedPromptResult) -> TripRequestDraft {
+        print("parsed result",parsed)
         // Parse dates from strings if present
         let departureDate: Date? = {
             if let text = parsed.schedule.departureDateText, !text.isEmpty {
@@ -62,6 +63,7 @@ struct TripDraftBuilder {
             privateCabinPreferred: parsed.transportPreferences.privateCabinPreferred,
         )
 
+        print("DRAFT : ", route.self, schedule.self, travelerInfo.self)
         return TripRequestDraft(
             route: route,
             schedule: schedule,

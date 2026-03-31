@@ -11,6 +11,8 @@ struct Screen1View: View {
     // Holds the user's freeform trip description typed into the TextEditor.
     // Using @State so the view updates as the user types.
     @StateObject private var viewModel = TripDraftViewModel()
+    @State private var showError = false
+    @State private var goToScreen2 = false
     
     var body: some View {
         ZStack {
@@ -25,7 +27,6 @@ struct Screen1View: View {
                 // Adds some initial top breathing room before the main card.
                 Spacer(minLength: 30)
                 
-                // The main "card" UI that holds header, input, button, etc.
                 mainCard
                 
                 // Pushes the card upward slightly and keeps bottom area airy.
@@ -55,21 +56,41 @@ struct Screen1View: View {
             
             // Custom PrimaryButton stretches horizontally (maxWidth: .infinity inside it).
             // We add horizontal padding so it aligns with the card’s inner margins.
-            PrimaryButton {
-                Task {
-                    await viewModel.submitPrompt()
-                }
-            } content: {
-                Text("Start Planning")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.white)
-            }
+            PrimaryButton(
+                action: {
+                    guard viewModel.validatePrompt() else {
+                        showError = true
+                        return
+                    }
+                    viewModel.screen2State = .loading
+                    goToScreen2 = true
+                    Task {
+                        await viewModel.submitPrompt()
+                    }
+                },
+                content: {
+                    Text("Start Planning")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.white)
+                },
+                buttonClicked: viewModel.screen2State == .loading || goToScreen2
+            )
             .padding(.horizontal, 28)
+            
+            NavigationLink (destination: FollowUpQuestionsView(viewModel: viewModel), isActive: $goToScreen2) {
+                EmptyView()
+            }
             
             // A divider to separate the button from the voice prompt affordance.
             Divider()
                 .padding(.horizontal, 28) // Align divider with button edges for a clean column
                 .padding(.top, 24)        // Breathing room above the divider
+            
+            if showError {
+                Text("Please enter a trip prompt.")
+                    .foregroundColor(.red)
+                    .font(.caption)
+            }
             
             // A tappable-looking voice prompt hint area.
             voiceSection
@@ -116,38 +137,7 @@ struct Screen1View: View {
                     .font(.system(size: 17, weight: .medium))
                     .foregroundColor(Color.black.opacity(0.6))
                 
-                ZStack(alignment: .topLeading) {
-                    // TextEditor expands vertically based on frame constraints.
-                    // We keep the style plain for a minimal look.
-                    TextEditor(text: $viewModel.userPrompt)
-                        .font(.system(size: 17))
-                        .textFieldStyle(.plain)
-                        // Tiny horizontal padding so text doesn’t touch the border.
-                        .padding(.horizontal, 4)
-                        // Provide a reasonable minimum height for multi-line input.
-                        .frame(minHeight: 140)
-                    
-                    // Manual placeholder: shown only when tripPrompt is empty.
-                    // ZStack with alignment lets us place it at the top-left.
-                    if viewModel.userPrompt.isEmpty {
-                        Text("Or describe your trip")
-                            .font(.system(size: 17))
-                            .foregroundColor(Color.black.opacity(0.3))
-                            .padding(.top, 8)
-                            .padding(.leading, 8)
-                            // Prevents capturing taps; lets the TextEditor receive focus.
-                            .allowsHitTesting(false)
-                    }
-                }
-                // White field background with subtle border to resemble an input.
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.black.opacity(0.1))
-                )
+                promptEditor
             }
             // Inner padding gives the section comfortable margins inside the card.
             .padding(.horizontal,16)
@@ -165,6 +155,42 @@ struct Screen1View: View {
         }
         // Align the prompt section’s outer edge with other card content (button/divider).
         .padding(.horizontal, 20)
+    }
+    
+    // MARK: - Prompt Editor
+    private var promptEditor : some View {
+        ZStack(alignment: .topLeading) {
+            // TextEditor expands vertically based on frame constraints.
+            // We keep the style plain for a minimal look.
+            TextEditor(text: $viewModel.userPrompt)
+                .font(.system(size: 17))
+                .textFieldStyle(.plain)
+                // Tiny horizontal padding so text doesn’t touch the border.
+                .padding(.horizontal, 4)
+                // Provide a reasonable minimum height for multi-line input.
+                .frame(minHeight: 140)
+            
+            // Manual placeholder: shown only when tripPrompt is empty.
+            // ZStack with alignment lets us place it at the top-left.
+            if viewModel.userPrompt.isEmpty {
+                Text("Or describe your trip")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color.black.opacity(0.3))
+                    .padding(.top, 8)
+                    .padding(.leading, 8)
+                    // Prevents capturing taps; lets the TextEditor receive focus.
+                    .allowsHitTesting(false)
+            }
+        }
+        // White field background with subtle border to resemble an input.
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.black.opacity(0.1))
+        )
     }
     
     // MARK: - Voice Section

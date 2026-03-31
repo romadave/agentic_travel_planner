@@ -10,12 +10,14 @@ import SwiftUI
 struct PrimaryButton<Content:View> : View {
     let content : Content
     let action: () -> Void
+    let buttonClicked: Bool
     
     init(action: @escaping () -> Void,
-             @ViewBuilder content: () -> Content) {
+         @ViewBuilder content: () -> Content, buttonClicked: Bool) {
             self.action = action
             self.content = content()
-        }
+            self.buttonClicked = buttonClicked
+    }
     
     var body : some View {
         Button (action: action){
@@ -36,5 +38,7 @@ struct PrimaryButton<Content:View> : View {
                 .shadow(color: Color.purple.opacity(0.22), radius: 10, x:0, y:6)
         }
         .buttonStyle(.plain)
+        .disabled(buttonClicked)
     }
 }
+

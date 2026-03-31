@@ -62,6 +62,7 @@ struct TripRequestEvaluator {
 
         let summary = buildSummary(from: draft)
 
+        print("TRIP EVALUATION DONE")
         return TripEvaluation(
             missingRequirements: missing,
             nextRequirement: nextRequirement,

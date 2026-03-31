@@ -7,42 +7,50 @@
 
 import Foundation
 import Combine
+
 @MainActor
 final class TripDraftViewModel : ObservableObject {
     @Published var userPrompt: String = ""
-    @Published var isLoading: Bool = false
     @Published var tripDraft : TripRequestDraft?
-    @Published var evaluation: TripEvaluation?
-    @Published var errorMessage : String?
+    @Published var screen2State: Screen2State = .idle
     
     private let apiService = TripAPIService()
     private let draftBuilder = TripDraftBuilder()
     private let evaluator = TripRequestEvaluator()
     
     func submitPrompt() async {
-        isLoading = true
-        errorMessage = nil
-        
+        screen2State = .loading
+        print("Loading now")
         do {
+            print("sending" ,userPrompt)
             // send the user prompt to LLM
-            let getResponse = try await apiService.parseTripPrompt(userPrompt)
-            
-            // get Parsed Response
-            let parsed = getResponse.parsedPromptResult
+            let parsed = try await fetchParsedPrompt(from: userPrompt)
             
             // build the draft from parsed response
             let draft = draftBuilder.build(from: parsed)
             self.tripDraft = draft
+            print("DRAFT : ", tripDraft.self)
             
             // evaluate the result and find missing questions
             let evaluateResult = evaluator.evaluate(draft: draft)
-            self.evaluation = evaluateResult
+            print("RESULT" , evaluateResult.self)
+            screen2State = .loaded(evaluateResult)
             
         } catch {
-            errorMessage = error.localizedDescription
+            screen2State = .failed(error.localizedDescription)
         }
+    }
+    
+    private func fetchParsedPrompt(from prompt: String) async throws -> ParsedPromptResult {
+        // Replace with your real API call
+        let response = try await apiService.parseTripPrompt(prompt)
         
-        isLoading = false
+        print("response", response.parsedPromptResult.self)
+        return response.parsedPromptResult
+    }
+    
+    func validatePrompt() -> Bool {
+        !userPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }
 

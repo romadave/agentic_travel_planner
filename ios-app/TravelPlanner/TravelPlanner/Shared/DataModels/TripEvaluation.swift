@@ -15,7 +15,7 @@ enum TripRequirement: String, CaseIterable {
     case transportMode
 }
 
-struct TripEvaluation {
+struct TripEvaluation : Equatable {
     let missingRequirements : [TripRequirement]
     let nextRequirement : TripRequirement?
     let isReadyForSubmission : Bool

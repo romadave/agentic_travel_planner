@@ -11,7 +11,9 @@ import SwiftUI
 struct TravelPlannerApp: App {
     var body: some Scene {
         WindowGroup {
-            Screen1View()
+            NavigationStack {
+                Screen1View()
+            }
         }
     }
 }

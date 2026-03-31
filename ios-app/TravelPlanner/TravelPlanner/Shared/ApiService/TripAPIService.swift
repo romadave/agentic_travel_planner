@@ -4,13 +4,19 @@
 //
 //  Created by Roma Dave on 3/23/26.
 //
+#if targetEnvironment(simulator)
+private let baseURL = "http://127.0.0.1:8000"
+#else
+private let baseURL = "http://192.168.1.23:8000" // your Mac's IP
+#endif
+
 import Foundation
 
 final class TripAPIService {
-    private let baseURL = "http://127.0.0.1:8000"
-    
     func parseTripPrompt(_ prompt: String) async throws -> ParseTripPromptResponse {
-        guard let url = URL(string: "\(baseURL)/parse-trip-prompt") else {
+        let endPoint = baseURL + "/parse-trip-prompt"
+        guard let url = URL(string: "\(endPoint)") else {
+            print("bad URL ", endPoint)
                     throw URLError(.badURL)
         }
 
@@ -18,6 +24,8 @@ final class TripAPIService {
             prompt: prompt,
             include_raw_llm_output: false
         )
+        
+        print("request body ", requestBody.self)
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -26,12 +34,16 @@ final class TripAPIService {
 
         let (data, response) = try await URLSession.shared.data(for: request)
         
+        print("Got response back")
+        
         guard let httpResponse = response as? HTTPURLResponse else {
+            print("bad server response")
             throw URLError(.badServerResponse)
         }
 
         guard 200..<300 ~= httpResponse.statusCode else {
             let serverMessage = String(data: data, encoding: .utf8) ?? "Unknown server error"
+            print("Server error ", serverMessage)
             throw NSError(domain: "TripAPIService", code: httpResponse.statusCode, userInfo: [
                 NSLocalizedDescriptionKey: serverMessage
             ])

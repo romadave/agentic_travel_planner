@@ -28,3 +28,7 @@ Why SwiftUI uses struct for views?
 #Equatable
 #Sendable
 #Published - basically if the value of a property changes -> it automatically sends updates to its subscribers. 
+#guard - A guard statement is used to assert that a condition must be true for execution to continue. If the condition is false, the else block must exit the current scope (using return, throw, break, or continue). This pattern is often called “early exit.”
+#@State
+#@StateObject
+#@escaping

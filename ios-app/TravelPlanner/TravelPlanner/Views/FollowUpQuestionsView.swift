@@ -65,10 +65,13 @@ struct FollowUpQuestionsView : View {
             VStack(spacing: 16) {
                 Text("We have enough information to continue.")
                     .foregroundStyle(.secondary)
-                Button("Get Plan") {
-                    print("Getting plan...")
-                    //TODO : new end point
-//                    Task { await viewModel.submitPrompt() }
+                Button(viewModel.evaluation?.isReadyForSubmission == true ? "Submit Trip" : "Get Plan") {
+                    if viewModel.evaluation?.isReadyForSubmission == true {
+                        // TODO: Call final submission endpoint
+                    } else {
+                        // Fallback: still call reevaluate to ensure state is fresh
+                        viewModel.reevaluateDraft()
+                    }
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -95,11 +98,14 @@ struct FollowUpQuestionsView : View {
                         Button("Back") { withAnimation { currentIndex -= 1 } }
                     }
                     Spacer()
-                    if currentIndex < questions.count - 1 {
+                    if currentIndex < questions.count - 1 || viewModel.evaluation?.isReadyForSubmission == false {
                         Button("Next") {
                             persistAnswer(for: questions[currentIndex])
+                            viewModel.reevaluateDraft()
                             withAnimation {
-                                currentIndex += 1
+                                // Clamp currentIndex to new questions count if it shrank
+                                let newCount = viewModel.evaluation?.missingRequirements.count ?? questions.count
+                                currentIndex = min(currentIndex + 1, max(0, newCount - 1))
                                 // Reset local inputs for next question
                                 textAnswer = ""
                                 boolAnswer = false
@@ -108,9 +114,13 @@ struct FollowUpQuestionsView : View {
                         .buttonStyle(.borderedProminent)
                     } else {
                         Button("Get Plan") {
-                            // Persist the final answer before submitting
                             persistAnswer(for: questions[currentIndex])
-                            Task { await viewModel.submitPrompt() }
+                            viewModel.reevaluateDraft()
+                            // If ready, proceed to final submission flow; else the UI will reflect updated questions
+                            if viewModel.evaluation?.isReadyForSubmission == true {
+                                // TODO: Call your final submission endpoint when implemented
+                                // For now, keep the state as loaded with the latest evaluation
+                            }
                         }
                         .buttonStyle(.borderedProminent)
                     }
@@ -196,8 +206,5 @@ struct FollowUpQuestionsView : View {
         }
     }
     
-    private func reevaluateDraft() {
-        
-    }
 }
 

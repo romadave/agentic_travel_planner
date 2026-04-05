@@ -13,6 +13,7 @@ final class TripDraftViewModel : ObservableObject {
     @Published var userPrompt: String = ""
     @Published var tripDraft : TripRequestDraft?
     @Published var screen2State: Screen2State = .idle
+    @Published var evaluation: TripEvaluation?
     
     private let apiService = TripAPIService()
     private let draftBuilder = TripDraftBuilder()
@@ -39,6 +40,7 @@ final class TripDraftViewModel : ObservableObject {
             
             // evaluate the result and find missing questions
             let evaluateResult = evaluator.evaluate(draft: draft)
+            self.evaluation = evaluateResult
             print("RESULT" , evaluateResult.self)
             screen2State = .loaded(evaluateResult)
             
@@ -177,10 +179,10 @@ extension TripDraftViewModel {
     }
     
     func reevaluateDraft() {
-        let result = evaluator.evaluate(draft : tripDraft)
-        self.evaluation
-        
-    
+        let draft = tripDraft ?? TripRequestDraft()
+        let result = evaluator.evaluate(draft: draft)
+        self.evaluation = result
+        self.screen2State = .loaded(result)
     }
 }
 

@@ -13,6 +13,7 @@ private let baseURL = "http://192.168.1.23:8000" // your Mac's IP
 import Foundation
 
 final class TripAPIService {
+    
     func parseTripPrompt(_ prompt: String) async throws -> ParseTripPromptResponse {
         let endPoint = baseURL + "/parse-trip-prompt"
         guard let url = URL(string: "\(endPoint)") else {
@@ -51,4 +52,6 @@ final class TripAPIService {
 
         return try JSONDecoder().decode(ParseTripPromptResponse.self, from: data)
     }
+    
+    func submitFinalDraft(_ draft: TripRequestDraft)
 }

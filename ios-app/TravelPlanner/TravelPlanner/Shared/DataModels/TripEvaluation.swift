@@ -13,6 +13,7 @@ enum TripRequirement: String, CaseIterable {
     case hasKids
     case youngestTravelerAge
     case transportMode
+    case lodgingPreferences
 }
 
 struct TripEvaluation : Equatable {

@@ -49,6 +49,32 @@ final class TripDraftViewModel : ObservableObject {
         }
     }
     
+    func submitFinalDraft() async {
+        do {
+            if(tripDraft == nil) {
+                print("no draft found")
+                return;
+            }
+            
+            print("fetching itinaray")
+            
+            // TODO : figure out how to send a non-null value
+            let tripResponse = try await fetchItinaray(from: tripDraft)
+            
+            print("itinaray", tripResponse.itinerary.summary)
+        } catch {
+            
+        }
+    }
+    
+    private func fetchItinaray(from draft: TripRequestDraft) async throws -> FinalTripResponse {
+        let response = try await apiService.submitFinalDraft(draft)
+        
+        print("response", response.itinerary.summary)
+        
+        return response.self
+    }
+    
     private func fetchParsedPrompt(from prompt: String) async throws -> ParsedPromptResult {
         // Replace with your real API call
         let response = try await apiService.parseTripPrompt(prompt)

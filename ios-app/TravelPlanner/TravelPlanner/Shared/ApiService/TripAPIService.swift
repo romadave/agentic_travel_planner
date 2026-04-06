@@ -53,5 +53,7 @@ final class TripAPIService {
         return try JSONDecoder().decode(ParseTripPromptResponse.self, from: data)
     }
     
-    func submitFinalDraft(_ draft: TripRequestDraft)
+    func submitFinalDraft(_ draft: TripRequestDraft) async throws -> FinalTripResponse {
+        
+    }
 }

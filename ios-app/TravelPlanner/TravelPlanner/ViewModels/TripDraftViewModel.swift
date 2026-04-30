@@ -51,15 +51,15 @@ final class TripDraftViewModel : ObservableObject {
     
     func submitFinalDraft() async {
         do {
-            if(tripDraft == nil) {
+            guard let draft = tripDraft else {
                 print("no draft found")
                 return;
             }
             
             print("fetching itinaray")
-            
             // TODO : figure out how to send a non-null value
-            let tripResponse = try await fetchItinaray(from: tripDraft)
+            
+            let tripResponse = try await fetchItinaray(from: draft)
             
             print("itinaray", tripResponse.itinerary.summary)
         } catch {

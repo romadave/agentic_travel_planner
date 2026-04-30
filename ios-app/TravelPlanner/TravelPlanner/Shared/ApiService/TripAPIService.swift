@@ -54,6 +54,37 @@ final class TripAPIService {
     }
     
     func submitFinalDraft(_ draft: TripRequestDraft) async throws -> FinalTripResponse {
+        let endPoint = baseURL + "/finalTripRequest"
+        guard let url = URL(string: endPoint) else {
+            print("bad URL ", endPoint)
+            throw URLError(.badURL)
+        }
         
+        print("Submitting final draft to endpoint: \(endPoint)")
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(draft)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        print("Got response back")
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print("bad server response")
+            throw URLError(.badServerResponse)
+        }
+        
+        guard 200..<300 ~= httpResponse.statusCode else {
+            let serverMessage = String(data: data, encoding: .utf8) ?? "Unknown server error"
+            print("Server error ", serverMessage)
+            throw NSError(domain: "TripAPIService", code: httpResponse.statusCode, userInfo: [
+                NSLocalizedDescriptionKey: serverMessage
+            ])
+        }
+        
+        return try JSONDecoder().decode(FinalTripResponse.self, from: data)
     }
+    
 }

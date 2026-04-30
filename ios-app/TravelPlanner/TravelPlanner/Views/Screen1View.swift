@@ -209,6 +209,6 @@ struct Screen1View: View {
     }
 }
 
-#Preview {
+#Preview("Default") {
     Screen1View()
 }

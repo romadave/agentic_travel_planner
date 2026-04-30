@@ -208,3 +208,17 @@ struct FollowUpQuestionsView : View {
     
 }
 
+#Preview("Loaded with missing requirements") {
+    let vm = TripDraftViewModel()
+    // Seed draft with partial data to trigger follow-up questions
+    vm.updateDestination("Paris")
+    vm.updateOrigin("NYC")
+    vm.updateDepartureDate(Date().addingTimeInterval(60 * 60 * 24 * 30)) // 30 days out
+    vm.updateReturnDate(Date().addingTimeInterval(60 * 60 * 24 * 37))    // 37 days out
+    vm.updateTravelerCount(2)
+    // Don’t set transport mode to force a missing requirement
+    vm.reevaluateDraft()
+
+    return FollowUpQuestionsView(viewModel: vm)
+}
+

@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum TripRequirement: String, CaseIterable {
+enum TripRequirement: String, Codable, CaseIterable {
     case destination
     case origin
     case travelDates

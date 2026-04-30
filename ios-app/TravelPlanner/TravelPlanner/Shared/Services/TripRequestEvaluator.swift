@@ -57,6 +57,14 @@ struct TripRequestEvaluator {
             missing.append(.transportMode)
         }
         
+        let hotel = draft.lodgingPreferences.hotel ?? false
+        let airbnb = draft.lodgingPreferences.airbnb ?? false
+        let bothMissing = !hotel && !airbnb
+        
+        if bothMissing {
+            missing.append(.lodgingPreferences)
+        }
+        
         let nextRequirement = missing.first
         let isReady = missing.isEmpty
 

@@ -15,6 +15,13 @@ struct FollowUpQuestionsView : View {
     @State private var boolAnswer: Bool = false
     @State private var departureDate: Date = .now
     @State private var returnDate: Date = .now
+    @State private var travelerCount: Int = 1
+    @State private var youngestAge: Int = 5
+    @State private var flightSelected: Bool = false
+    @State private var roadSelected: Bool = false
+    @State private var trainSelected: Bool = false
+    @State private var hotelSelected: Bool = false
+    @State private var airbnbSelected: Bool = false
     
     var body : some View {
         VStack {
@@ -107,8 +114,7 @@ struct FollowUpQuestionsView : View {
                                 let newCount = viewModel.evaluation?.missingRequirements.count ?? questions.count
                                 currentIndex = min(currentIndex + 1, max(0, newCount - 1))
                                 // Reset local inputs for next question
-                                textAnswer = ""
-                                boolAnswer = false
+                                resetAnswerState()
                             }
                         }
                         .buttonStyle(.borderedProminent)
@@ -136,12 +142,19 @@ struct FollowUpQuestionsView : View {
                 .font(.title3.weight(.semibold))
 
             switch requirement {
-            case .destination, .origin, .travelerCount, .youngestTravelerAge, .transportMode, .lodgingPreferences:
+            case .destination, .origin:
                 TextField("Type your answer", text: $textAnswer)
                     .textFieldStyle(.roundedBorder)
+
+            case .travelerCount:
+                Stepper("Travelers: \(travelerCount)", value: $travelerCount, in: 1...20)
+
+            case .youngestTravelerAge:
+                Stepper("Age: \(youngestAge)", value: $youngestAge, in: 1...17)
+
             case .hasKids:
                 Toggle("Traveling with kids", isOn: $boolAnswer)
-                
+
             case .travelDates:
                 VStack(alignment: .leading, spacing: 12) {
                     DatePicker("Departure", selection: $departureDate, displayedComponents: .date)
@@ -149,14 +162,42 @@ struct FollowUpQuestionsView : View {
                     DatePicker("Return", selection: Binding(
                         get: { max(returnDate, departureDate) },
                         set: { newValue in
-                            // Ensure return is not before departure
                             returnDate = max(newValue, departureDate)
                         }
                     ), in: departureDate..., displayedComponents: .date)
                     .datePickerStyle(.compact)
                 }
+
+            case .transportMode:
+                HStack(spacing: 12) {
+                    toggleButton(title: "Flight", isSelected: $flightSelected)
+                    toggleButton(title: "Road", isSelected: $roadSelected)
+                    toggleButton(title: "Train", isSelected: $trainSelected)
+                }
+
+            case .lodgingPreferences:
+                HStack(spacing: 12) {
+                    toggleButton(title: "Hotel", isSelected: $hotelSelected)
+                    toggleButton(title: "Airbnb", isSelected: $airbnbSelected)
+                }
             }
         }
+    }
+
+    @ViewBuilder
+    private func toggleButton(title: String, isSelected: Binding<Bool>) -> some View {
+        Button {
+            isSelected.wrappedValue.toggle()
+        } label: {
+            Text(title)
+                .font(.subheadline.weight(.medium))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(isSelected.wrappedValue ? Color.accentColor : Color(.systemGray5))
+                .foregroundStyle(isSelected.wrappedValue ? .white : .primary)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
     }
     
     private func persistAnswer(for requirement: TripRequirement) {
@@ -168,23 +209,31 @@ struct FollowUpQuestionsView : View {
         case .travelDates:
             viewModel.updateTravelDates(departure: departureDate, returnDate: returnDate)
         case .travelerCount:
-            if let count = Int(textAnswer.trimmingCharacters(in: .whitespacesAndNewlines)) {
-                viewModel.updateTravelerCount(count)
-            }
+            viewModel.updateTravelerCount(travelerCount)
         case .hasKids:
             viewModel.updateHasKids(boolAnswer)
         case .youngestTravelerAge:
-            if let age = Int(textAnswer.trimmingCharacters(in: .whitespacesAndNewlines)) {
-                viewModel.updateYoungestTravelerAge(age)
-            }
+            viewModel.updateYoungestTravelerAge(youngestAge)
         case .transportMode:
-            viewModel.updateTransportMode(textAnswer)
-            
+            viewModel.setTransportModes(flight: flightSelected, road: roadSelected, train: trainSelected)
         case .lodgingPreferences:
-            viewModel.updateLodging(textAnswer)
+            viewModel.updateLodgingHotel(hotelSelected)
+            viewModel.updateLodgingAirbnb(airbnbSelected)
         }
     }
     
+    private func resetAnswerState() {
+        textAnswer = ""
+        boolAnswer = false
+        travelerCount = 1
+        youngestAge = 5
+        flightSelected = false
+        roadSelected = false
+        trainSelected = false
+        hotelSelected = false
+        airbnbSelected = false
+    }
+
     private func questionText(for requirement: TripRequirement) -> String {
         switch requirement {
         case .destination:
@@ -200,9 +249,9 @@ struct FollowUpQuestionsView : View {
         case .youngestTravelerAge:
             return "How old is the youngest traveler?"
         case .transportMode:
-            return "How would you like to travel? (Flight, road, or train)"
+            return "How would you like to travel?"
         case .lodgingPreferences:
-            return "Where would you like to stay? (Hotel, airbnb)?"
+            return "Where would you like to stay?"
         }
     }
     
@@ -216,7 +265,8 @@ struct FollowUpQuestionsView : View {
     vm.updateDepartureDate(Date().addingTimeInterval(60 * 60 * 24 * 30)) // 30 days out
     vm.updateReturnDate(Date().addingTimeInterval(60 * 60 * 24 * 37))    // 37 days out
     vm.updateTravelerCount(2)
-    // Don’t set transport mode to force a missing requirement
+    vm.updateLodgingHotel(true)
+    // Don't set hasKids or transport mode to force missing requirements
     vm.reevaluateDraft()
 
     return FollowUpQuestionsView(viewModel: vm)

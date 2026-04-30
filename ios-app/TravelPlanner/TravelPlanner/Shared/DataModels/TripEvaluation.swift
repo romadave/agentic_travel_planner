@@ -5,7 +5,9 @@
 //  Created by Roma Dave on 3/23/26.
 //
 
-enum TripRequirement: String, CaseIterable {
+import Foundation
+
+enum TripRequirement: String, Codable, CaseIterable {
     case destination
     case origin
     case travelDates
@@ -13,9 +15,10 @@ enum TripRequirement: String, CaseIterable {
     case hasKids
     case youngestTravelerAge
     case transportMode
+    case lodgingPreferences
 }
 
-struct TripEvaluation : Equatable {
+struct TripEvaluation : Codable, Equatable {
     let missingRequirements : [TripRequirement]
     let nextRequirement : TripRequirement?
     let isReadyForSubmission : Bool

@@ -9,6 +9,12 @@ import SwiftUI
 struct FollowUpQuestionsView : View {
     @ObservedObject var viewModel: TripDraftViewModel
     @State private var isLoading = true
+    //tracks current Index
+    @State private var currentIndex: Int = 0
+    @State private var textAnswer: String = ""
+    @State private var boolAnswer: Bool = false
+    @State private var departureDate: Date = .now
+    @State private var returnDate: Date = .now
     
     var body : some View {
         VStack {
@@ -48,20 +54,136 @@ struct FollowUpQuestionsView : View {
     
     @ViewBuilder
         private func loadedView(evaluation: TripEvaluation) -> some View {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Here’s what I still need")
-                    .font(.title3.weight(.semibold))
+            stepperView(evaluation: evaluation)
+        }
+    
+    @ViewBuilder
+    private func stepperView(evaluation: TripEvaluation) -> some View {
+        let questions = evaluation.missingRequirements
 
-                if evaluation.missingRequirements.isEmpty {
-                    Text("We have enough information to continue.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(evaluation.missingRequirements, id: \.rawValue) { requirement in
-                        Text("• \(questionText(for: requirement))")
+        if questions.isEmpty {
+            VStack(spacing: 16) {
+                Text("We have enough information to continue.")
+                    .foregroundStyle(.secondary)
+                Button(viewModel.evaluation?.isReadyForSubmission == true ? "Submit Trip" : "Get Plan") {
+                    if viewModel.evaluation?.isReadyForSubmission == true {
+                        // TODO: Call final submission endpoint
+                    } else {
+                        // Fallback: still call reevaluate to ensure state is fresh
+                        viewModel.reevaluateDraft()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 20) {
+                ProgressView(value: Double(currentIndex + 1), total: Double(questions.count))
+                Text("Question \(currentIndex + 1) of \(questions.count)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                ZStack {
+                    // Only render the active question
+                    singleQuestionView(for: questions[currentIndex])
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
+                        .id(questions[currentIndex].rawValue)
+                }
+                .animation(.easeInOut, value: currentIndex)
+
+                HStack {
+                    if currentIndex > 0 {
+                        Button("Back") { withAnimation { currentIndex -= 1 } }
+                    }
+                    Spacer()
+                    if currentIndex < questions.count - 1 || viewModel.evaluation?.isReadyForSubmission == false {
+                        Button("Next") {
+                            persistAnswer(for: questions[currentIndex])
+                            viewModel.reevaluateDraft()
+                            withAnimation {
+                                // Clamp currentIndex to new questions count if it shrank
+                                let newCount = viewModel.evaluation?.missingRequirements.count ?? questions.count
+                                currentIndex = min(currentIndex + 1, max(0, newCount - 1))
+                                // Reset local inputs for next question
+                                textAnswer = ""
+                                boolAnswer = false
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                    } else {
+                        Button("Get Plan") {
+                            persistAnswer(for: questions[currentIndex])
+                            viewModel.reevaluateDraft()
+                            // If ready, proceed to final submission flow; else the UI will reflect updated questions
+                            if viewModel.evaluation?.isReadyForSubmission == true {
+                                // TODO: Call your final submission endpoint when implemented
+                                // For now, keep the state as loaded with the latest evaluation
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
                 }
             }
         }
+    }
+    
+    @ViewBuilder
+    private func singleQuestionView(for requirement: TripRequirement) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(questionText(for: requirement))
+                .font(.title3.weight(.semibold))
+
+            switch requirement {
+            case .destination, .origin, .travelerCount, .youngestTravelerAge, .transportMode, .lodgingPreferences:
+                TextField("Type your answer", text: $textAnswer)
+                    .textFieldStyle(.roundedBorder)
+            case .hasKids:
+                Toggle("Traveling with kids", isOn: $boolAnswer)
+                
+            case .travelDates:
+                VStack(alignment: .leading, spacing: 12) {
+                    DatePicker("Departure", selection: $departureDate, displayedComponents: .date)
+                        .datePickerStyle(.compact)
+                    DatePicker("Return", selection: Binding(
+                        get: { max(returnDate, departureDate) },
+                        set: { newValue in
+                            // Ensure return is not before departure
+                            returnDate = max(newValue, departureDate)
+                        }
+                    ), in: departureDate..., displayedComponents: .date)
+                    .datePickerStyle(.compact)
+                }
+            }
+        }
+    }
+    
+    private func persistAnswer(for requirement: TripRequirement) {
+        switch requirement {
+        case .destination:
+            viewModel.updateDestination(textAnswer)
+        case .origin:
+            viewModel.updateOrigin(textAnswer)
+        case .travelDates:
+            viewModel.updateTravelDates(departure: departureDate, returnDate: returnDate)
+        case .travelerCount:
+            if let count = Int(textAnswer.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                viewModel.updateTravelerCount(count)
+            }
+        case .hasKids:
+            viewModel.updateHasKids(boolAnswer)
+        case .youngestTravelerAge:
+            if let age = Int(textAnswer.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                viewModel.updateYoungestTravelerAge(age)
+            }
+        case .transportMode:
+            viewModel.updateTransportMode(textAnswer)
+            
+        case .lodgingPreferences:
+            viewModel.updateLodging(textAnswer)
+        }
+    }
     
     private func questionText(for requirement: TripRequirement) -> String {
         switch requirement {
@@ -79,6 +201,24 @@ struct FollowUpQuestionsView : View {
             return "How old is the youngest traveler?"
         case .transportMode:
             return "How would you like to travel? (Flight, road, or train)"
+        case .lodgingPreferences:
+            return "Where would you like to stay? (Hotel, airbnb)?"
         }
     }
+    
 }
+
+#Preview("Loaded with missing requirements") {
+    let vm = TripDraftViewModel()
+    // Seed draft with partial data to trigger follow-up questions
+    vm.updateDestination("Paris")
+    vm.updateOrigin("NYC")
+    vm.updateDepartureDate(Date().addingTimeInterval(60 * 60 * 24 * 30)) // 30 days out
+    vm.updateReturnDate(Date().addingTimeInterval(60 * 60 * 24 * 37))    // 37 days out
+    vm.updateTravelerCount(2)
+    // Don’t set transport mode to force a missing requirement
+    vm.reevaluateDraft()
+
+    return FollowUpQuestionsView(viewModel: vm)
+}
+

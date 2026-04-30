@@ -32,3 +32,4 @@ Why SwiftUI uses struct for views?
 #@State
 #@StateObject
 #@escaping
+#@ViewBuilder

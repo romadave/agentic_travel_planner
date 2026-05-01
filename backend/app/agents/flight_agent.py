@@ -1,133 +1,73 @@
+from app.client.serp_client import serp_client
+from app.models.final_trip_request import FinalTripRequest
 
-import json
-from app.client.gemini_client import gemini_client
+MAX_FLIGHTS = 6  # how many raw flights to pass to the ranking agent
 
-def parse_json_response(text):
-    cleaned = text.strip()
+def _parse_time(datetime_str: str) -> tuple[str, str]:
+    """Split "2026-09-05 08:30" into ("2026-09-05", "08:30")."""
+    parts = datetime_str.split(" ")
+    if len(parts) == 2:
+        return parts[0], parts[1]
+    return datetime_str, ""
 
-    if cleaned.startswith("```"):
-        lines = cleaned.splitlines()
+def _extract_flights(raw: dict) -> list[dict]:
+    results = []
 
-        if lines and lines[0].startswith("```"):
-            lines = lines[1:]
+    # SerpAPI returns "best_flights" and "other_flights"
+    candidates = raw.get("best_flights", []) + raw.get("other_flights", [])
 
-        if lines and lines[-1].startswith("```"):
-            lines = lines[:-1]
+    for option in candidates[:MAX_FLIGHTS]:
+        segments = option.get("flights", [])
+        if not segments:
+            continue
 
-        cleaned = "\n".join(lines).strip()
-    
-    return json.loads(cleaned)
+        first_seg = segments[0]
+        last_seg = segments[-1]
 
+        dep_date, dep_time = _parse_time(first_seg.get("departure_airport", {}).get("time", ""))
+        arr_date, arr_time = _parse_time(last_seg.get("arrival_airport", {}).get("time", ""))
 
-def fetch_flights():
-    flights = [
-        {
-            "airline": "Swiss Air",
-            "price": 1080,
-            "duration_hours": 11.0,
-            "layovers": 0,
-            "departure_date": "2026-09-05",
-            "departure_time": "13:10",
-            "arrival_date": "2026-09-06",
-            "arrival_time": "18:10"
-        },
-        {
-            "airline": "Lufthansa",
-            "price": 890,
-            "duration_hours": 14.2,
-            "layovers": 1,
-            "departure_date": "2026-09-05",
-            "departure_time": "10:00",
-            "arrival_date": "2026-09-06",
-            "arrival_time": "21:45"
-        },
-        {
-            "airline": "British Airways",
-            "price": 830,
-            "duration_hours": 15.5,
-            "layovers": 1,
-            "departure_date": "2026-09-05",
-            "departure_time": "16:30",
-            "arrival_date": "2026-09-06",
-            "arrival_time": "23:50"
-        }
-    ]
+        layover_names = [
+            lv.get("name", lv.get("id", "Unknown"))
+            for lv in option.get("layovers", [])
+        ]
 
-    return flights
+        duration_minutes = option.get("total_duration", 0)
+        duration_hours = round(duration_minutes / 60, 1)
 
+        booking_url = raw.get("search_metadata", {}).get("google_flights_url")
 
-def get_prompt(trip_request, flights):
-    prompt = f"""
-    You are a travel planning assistant for parents traveling with a toddler.
+        results.append({
+            "airline": first_seg.get("airline", "Unknown"),
+            "origin": first_seg.get("departure_airport", {}).get("id", ""),
+            "destination": last_seg.get("arrival_airport", {}).get("id", ""),
+            "departureDate": dep_date,
+            "departureTime": dep_time,
+            "returnDate": arr_date,
+            "returnTime": arr_time,
+            "duration": duration_hours,
+            "layovers": layover_names,
+            "price": option.get("price", 0),
+            "bookingUrl": booking_url,
+        })
 
-    Trip details:
-    - Origin: {trip_request["origin"]}
-    - Destination: {trip_request["destination"]}
-    - Departure date: {trip_request["departure_date"]}
-    - Return date: {trip_request["return_date"]}
-    - Toddler age: {trip_request["toddler_age"]}
+    return results
 
-    Rank these outbound flights from best to worst.
+async def fetch_flights(request: FinalTripRequest) -> list[dict]:
+    origin = request.route.originText or ""
+    destination = request.route.destinationText or ""
+    departure = request.schedule.departureDateText or ""
+    returning = request.schedule.returnDateText or ""
+    adults = request.travelerInfo.travelerCount or 1
+    children = 1 if request.travelerInfo.hasKids else 0
 
-    Preferences:
-    - Prefer direct flights
-    - Prefer shorter travel time
-    - Avoid late arrivals
-    - Fewer layovers are better
-    - Lower price is helpful, but convenience matters more when traveling with a toddler
+    raw = await serp_client.search_flights(
+        origin=origin,
+        destination=destination,
+        outbound_date=departure,
+        return_date=returning,
+        adults=adults,
+        children=children,
+    )
 
-    Return the result as valid JSON with this shape:
-    {{
-    "ranked_flights": [
-        {{
-        "rank": 1,
-        "airline": "airline name",
-        "score": 1-10,
-        "reason": "short explanation"
-        }}
-    ]
-    }}
-
-    Flights:
-    {json.dumps(flights, indent=2)}
-    """
-
-    return prompt
-
-
-def rank_flights_with_gemini(trip_request):
-    flights = fetch_flights()
-    prompt = get_prompt(trip_request=trip_request, flights=flights)
-    response = gemini_client.generate_text(model='gemini-2.5-flash', user_prompt=prompt)
-    parsed = parse_json_response(response.text)
-
-    flight_lookup = {f["airline"]: f for f in flights}
-
-    #making a dictionary from json
-    combined_results = []
-
-    for ranked in parsed["ranked_flights"]:
-        airline = ranked["airline"]
-        original = flight_lookup.get(airline, {})
-
-        merged = {
-            "trip_origin": trip_request["origin"],
-            "trip_destination": trip_request["destination"],
-            "trip_departure_date": trip_request["departure_date"],
-            "trip_return_date": trip_request["return_date"],
-            "rank": ranked["rank"],
-            "airline": airline,
-            "score": ranked["score"],
-            "reason": ranked["reason"],
-            "price": original.get("price"),
-            "duration_hours": original.get("duration_hours"),
-            "layovers": original.get("layovers"),
-            "departure_date": original.get("departure_date"),
-            "departure_time": original.get("departure_time"),
-            "arrival_date": original.get("arrival_date"),
-            "arrival_time": original.get("arrival_time")
-        }
-
-        combined_results.append(merged)
-
-    return combined_results
+    return _extract_flights(raw)

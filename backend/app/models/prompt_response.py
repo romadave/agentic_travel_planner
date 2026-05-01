@@ -1,6 +1,9 @@
 from pydantic import BaseModel
 from typing import Optional, List
 
+
+# ── Existing parse-trip models (unchanged) ───────────────────────────
+
 class ParsedPromptRoute(BaseModel):
     originText: Optional[str] = None
     destinationText: Optional[str] = None
@@ -11,7 +14,6 @@ class ParsedPromptSchedule(BaseModel):
     returnDateText: Optional[str] = None
     numberOfDays: Optional[int] = None
     dateText: Optional[str] = None
-
 
 class LodgingPreferences(BaseModel):
     hotel: Optional[bool] = None
@@ -28,12 +30,10 @@ class TransportPreferences(BaseModel):
     budgetTrain: Optional[bool] = None
     privateCabinPreferred: Optional[bool] = None
 
-
 class TravelerInfo(BaseModel):
     travelerCount: Optional[int] = None
     hasKids: Optional[bool] = None
     youngestTravelerAge: Optional[int] = None
-
 
 class ParsedPromptResult(BaseModel):
     route: ParsedPromptRoute = ParsedPromptRoute()

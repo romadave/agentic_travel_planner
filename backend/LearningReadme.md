@@ -1,3 +1,84 @@
+# How to Run the Backend
+
+## 1. Activate the virtual environment
+Every time you open a new terminal, run this first:
+```
+source .venv/bin/activate
+```
+You'll see (.venv) appear at the start of your terminal prompt.
+This means Python is now using the packages installed in this project, not your system Python.
+
+Why: Python projects use virtual environments to isolate dependencies.
+Each project gets its own sandbox so packages don't conflict across projects.
+Think of it like a Flutter pubspec.yaml — but at the Python level.
+
+## 2. Install dependencies (first time only, or after adding new packages)
+```
+pip install -r requirements.txt
+```
+This reads requirements.txt and installs every listed package.
+After adding a new package with pip install <package>, run:
+```
+pip freeze > requirements.txt
+```
+This saves the updated list back to requirements.txt so teammates can install the same versions.
+
+## 3. Set up your .env file
+Create a file called .env in the backend/ folder (same level as requirements.txt).
+Add your API keys:
+```
+GEMINI_API_KEY=your_gemini_key_here
+SERP_API_KEY=your_serpapi_key_here
+```
+This file is in .gitignore — it will never be committed to git.
+python-dotenv reads this file automatically when the server starts.
+
+## 4. Start the server
+```
+uvicorn app.main:app --reload
+```
+Breaking this down:
+- uvicorn       → the ASGI server that runs FastAPI apps
+- app.main      → the Python module path (backend/app/main.py)
+- :app          → the FastAPI instance inside main.py (the variable named "app")
+- --reload      → auto-restarts the server when you save a file (dev mode only)
+
+The server runs at: http://127.0.0.1:8000
+
+## 5. Test your endpoints
+
+Option A — Swagger UI (recommended for learning):
+Open http://127.0.0.1:8000/docs in your browser.
+FastAPI auto-generates an interactive playground for every endpoint.
+You can paste JSON, hit Send, and see the response — no Postman needed.
+
+Option B — curl from terminal:
+```
+curl -X POST http://127.0.0.1:8000/finalTripRequest \
+  -H "Content-Type: application/json" \
+  -d '{
+    "route": { "originText": "SFO", "destinationText": "Maui" },
+    "schedule": {
+      "departureDateText": "2026-09-05",
+      "returnDateText": "2026-09-10",
+      "numberOfDays": 5
+    },
+    "travelerInfo": { "travelerCount": 2, "hasKids": true, "youngestTravelerAge": 2 },
+    "transportPreferences": { "layoversAllowed": false, "budgetFlight": false },
+    "lodgingPreferences": { "hotel": true, "isFamilyFriendly": true }
+  }'
+```
+
+## 6. Stop the server
+Press Ctrl+C in the terminal where uvicorn is running.
+
+## Troubleshooting
+- "SERP_API_KEY is not set" → your .env file is missing the key or you forgot to save it
+- "ModuleNotFoundError" → your venv is not activated, run source .venv/bin/activate
+- "Address already in use" → another process is on port 8000, run: lsof -i :8000 then kill <PID>
+
+---
+
 # Fast API:
 FastAPI is extremely popular for AI backends because:
 

@@ -5,6 +5,10 @@ from app.models.final_trip_request import FinalTripRequest, ItineraryDraft
 
 MAX_HOTELS_PER_AREA = 5
 
+def _google_search_url(name: str, area: str) -> str:
+    query = quote_plus(f"{name} {area} hotel booking")
+    return f"https://www.google.com/search?q={query}"
+
 def _extract_hotels(raw: dict, area: str) -> list[dict]:
     results = []
 

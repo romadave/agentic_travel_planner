@@ -1,4 +1,5 @@
 from app.client.serp_client import serp_client
+from app.client.gemini_client import gemini_client
 from app.models.final_trip_request import FinalTripRequest
 
 MAX_FLIGHTS = 6  # how many raw flights to pass to the ranking agent
@@ -9,6 +10,14 @@ def _parse_time(datetime_str: str) -> tuple[str, str]:
     if len(parts) == 2:
         return parts[0], parts[1]
     return datetime_str, ""
+
+async def _resolve_airport_code(location: str) -> str:
+    raw = gemini_client.generate_text(
+        model="gemini-flash-latest",
+        user_prompt=f"What is the main IATA airport code for: {location}? Reply with the 3-letter code only. Example: SFO",
+        system_prompt="You are an airport code lookup tool. Return only the 3-letter IATA code, nothing else.",
+    )
+    return raw.strip().upper()[:3]
 
 def _extract_flights(raw: dict) -> list[dict]:
     results = []
@@ -54,8 +63,8 @@ def _extract_flights(raw: dict) -> list[dict]:
     return results
 
 async def fetch_flights(request: FinalTripRequest) -> list[dict]:
-    origin = request.route.originText or ""
-    destination = request.route.destinationText or ""
+    origin = await _resolve_airport_code(request.route.originText or "")
+    destination = await _resolve_airport_code(request.route.destinationText or "")
     departure = request.schedule.departureDateText or ""
     returning = request.schedule.returnDateText or ""
     adults = request.travelerInfo.travelerCount or 1

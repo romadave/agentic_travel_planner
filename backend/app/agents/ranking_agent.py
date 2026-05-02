@@ -26,7 +26,7 @@ Your job:
 Rules:
 1. Return valid JSON only. No markdown, no explanation.
 2. Keep all original flight fields. Add "rank", "score", "reason".
-3. Keep all original hotel fields. Add "score", "reason", "totalPrice" (pricePerNight * nights).
+3. Keep all original hotel fields. Add "score" and "reason".
 4. If a stop has no hotels, return an empty hotels array for it.
 
 JSON schema:
@@ -165,7 +165,7 @@ async def rank_flights_and_hotels(
 ) -> tuple[list[FlightOption], list[ItineraryOption]]:
     user_prompt = _build_user_prompt(request, flights, itinerary_drafts, hotels_by_area)
     raw = gemini_client.generate_text(
-        model="gemini-2.5-pro",
+        model="gemini-flash-latest",
         user_prompt=user_prompt,
         system_prompt=SYSTEM_PROMPT,
     )

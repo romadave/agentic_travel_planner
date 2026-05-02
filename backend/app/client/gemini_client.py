@@ -10,7 +10,7 @@ class GeminiClient:
         if not api_key:
             raise ValueError("GEMINI_API_KEY is not set")
         self._client = genai.Client(api_key=api_key)
-        self.default_model = "gemini-2.5-pro"
+        self.default_model = "gemini-flash-latest"
 
     def generate_text(
         self,

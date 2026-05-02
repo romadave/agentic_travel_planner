@@ -1,4 +1,5 @@
 import asyncio
+from urllib.parse import quote_plus
 from app.client.serp_client import serp_client
 from app.models.final_trip_request import FinalTripRequest, ItineraryDraft
 
@@ -8,20 +9,17 @@ def _extract_hotels(raw: dict, area: str) -> list[dict]:
     results = []
 
     for prop in raw.get("properties", [])[:MAX_HOTELS_PER_AREA]:
-        prices = prop.get("prices", [])
-        price_per_night = 0.0
-        booking_url = None
-
-        if prices:
-            rate = prices[0].get("rate_per_night", {})
-            price_per_night = rate.get("extracted_lowest", 0.0)
-            booking_url = prices[0].get("link")
+        name = prop.get("name", "Unknown Hotel")
+        price_per_night = prop.get("rate_per_night", {}).get("extracted_lowest", 0.0)
+        total_price = prop.get("total_rate", {}).get("extracted_lowest", 0.0)
+        booking_url = prop.get("link") or _google_search_url(name, area)
 
         results.append({
-            "name": prop.get("name", "Unknown Hotel"),
+            "name": name,
             "area": area,
             "rating": prop.get("overall_rating") or prop.get("rating", 0.0),
             "pricePerNight": price_per_night,
+            "totalPrice": total_price,
             "amenities": prop.get("amenities", []),
             "bookingUrl": booking_url,
         })

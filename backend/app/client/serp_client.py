@@ -53,7 +53,6 @@ class SerpAPIClient:
             "check_in_date": check_in_date,
             "check_out_date": check_out_date,
             "adults": adults,
-            "children": children,
             "currency": "USD",
             "hl": "en",
             "api_key": self.api_key,

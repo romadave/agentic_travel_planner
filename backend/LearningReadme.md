@@ -79,6 +79,62 @@ Press Ctrl+C in the terminal where uvicorn is running.
 
 ---
 
+# Debugging External API Responses
+
+When an external API (SerpAPI, Gemini, etc.) returns unexpected data — wrong fields, zeros, nulls — the fastest way to debug is to write a small throwaway script that calls the API directly and prints the raw response.
+
+## Why this works
+You can't trust assumptions about what an API returns. The only way to know the real shape of the data is to print it and look. Field names, nesting, and data types often differ from documentation.
+
+## The pattern
+Create a file like debug_hotels.py in your backend/ folder:
+
+```python
+import asyncio
+import json
+from dotenv import load_dotenv
+load_dotenv()
+
+from app.client.serp_client import serp_client
+
+async def main():
+    raw = await serp_client.search_hotels(
+        location="Kaanapali, Maui",
+        check_in_date="2026-09-05",
+        check_out_date="2026-09-10",
+        adults=2,
+    )
+    # Print first 2 results only so it's readable
+    props = raw.get("properties", [])[:2]
+    print(json.dumps(props, indent=2))
+
+asyncio.run(main())
+```
+
+Run it — but always activate the venv first so Python can find your project packages:
+```
+source .venv/bin/activate
+python3 debug_hotels.py
+```
+
+Why source first: your project packages (serpapi, google-genai, etc.) are installed inside .venv, not in your system Python. Without activating, python3 debug_hotels.py will fail with ModuleNotFoundError because it can't find app.client.serp_client or any other local imports.
+
+Read the output and find the real field paths. Example of what we discovered:
+- We assumed: prices[0].rate_per_night.extracted_lowest
+- Reality:     prop.rate_per_night.extracted_lowest  ← one level up
+- We assumed: prices[0].link
+- Reality:     prop.link  ← directly on the property
+
+Then fix your extraction code to use the real paths, and delete the debug file.
+
+## Key rules
+- Slice the results ([:2]) — printing 10 hotels with full image arrays is unreadable
+- Use json.dumps(data, indent=2) — raw dict output is hard to scan
+- Delete the debug file after — it's a throwaway tool, not production code
+- The debug file lives in backend/ (same level as requirements.txt), not inside app/
+
+---
+
 # Fast API:
 FastAPI is extremely popular for AI backends because:
 

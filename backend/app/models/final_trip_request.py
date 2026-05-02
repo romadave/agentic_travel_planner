@@ -25,7 +25,7 @@ class FinalTripRequest(BaseModel):
 # ── /finalTripRequest — Output models ────────────────────────────────
 
 class PartOfDay(BaseModel):
-    activity: str
+    activity: Optional[str] = None
     place: Optional[str] = None
     foodSuggestion: Optional[str] = None
     notes: Optional[str] = None
@@ -35,9 +35,9 @@ class TripDay(BaseModel):
     dayNumber: int
     date: str                   # "2026-09-05"
     area: str                   # "Lahaina"
-    morning: PartOfDay
-    afternoon: PartOfDay
-    evening: PartOfDay
+    morning: Optional[PartOfDay] = None
+    afternoon: Optional[PartOfDay] = None
+    evening: Optional[PartOfDay] = None
 
 class ItineraryStop(BaseModel):
     area: str                   # "Lahaina, Maui" — used for hotel search

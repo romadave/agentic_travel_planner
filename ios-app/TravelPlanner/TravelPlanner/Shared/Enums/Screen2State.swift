@@ -10,5 +10,7 @@ enum Screen2State: Equatable {
     case idle
     case loading
     case loaded(TripEvaluation)
+    case submittingFinal
+    case finalResult(FinalTripResponse)
     case failed(String)
 }

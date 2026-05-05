@@ -40,6 +40,18 @@ struct FollowUpQuestionsView : View {
             case .loaded(let tripEvaluation):
                 loadedView(evaluation: tripEvaluation)
             
+            case .submittingFinal:
+                VStack(spacing: 16) {
+                    ProgressView()
+                    Text("Building your trip plan...")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            
+            case .finalResult(let response):
+                finalResultView(response: response)
+            
             case .failed(let errorMessage):
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Something went wrong")
@@ -67,6 +79,8 @@ struct FollowUpQuestionsView : View {
     @ViewBuilder
     private func stepperView(evaluation: TripEvaluation) -> some View {
         let questions = evaluation.missingRequirements
+        // Clamp index to valid range to prevent out-of-bounds crash
+        let safeIndex = questions.isEmpty ? 0 : min(currentIndex, questions.count - 1)
 
         if questions.isEmpty {
             VStack(spacing: 16) {
@@ -74,9 +88,8 @@ struct FollowUpQuestionsView : View {
                     .foregroundStyle(.secondary)
                 Button(viewModel.evaluation?.isReadyForSubmission == true ? "Submit Trip" : "Get Plan") {
                     if viewModel.evaluation?.isReadyForSubmission == true {
-                        // TODO: Call final submission endpoint
+                        Task { await viewModel.submitFinalDraft() }
                     } else {
-                        // Fallback: still call reevaluate to ensure state is fresh
                         viewModel.reevaluateDraft()
                     }
                 }
@@ -84,52 +97,53 @@ struct FollowUpQuestionsView : View {
             }
         } else {
             VStack(alignment: .leading, spacing: 20) {
-                ProgressView(value: Double(currentIndex + 1), total: Double(questions.count))
-                Text("Question \(currentIndex + 1) of \(questions.count)")
+                ProgressView(value: Double(safeIndex + 1), total: Double(questions.count))
+                Text("Question \(safeIndex + 1) of \(questions.count)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
                 ZStack {
-                    // Only render the active question
-                    singleQuestionView(for: questions[currentIndex])
+                    singleQuestionView(for: questions[safeIndex])
                         .transition(.asymmetric(
                             insertion: .move(edge: .trailing).combined(with: .opacity),
                             removal: .move(edge: .leading).combined(with: .opacity)
                         ))
-                        .id(questions[currentIndex].rawValue)
+                        .id(questions[safeIndex].rawValue)
                 }
-                .animation(.easeInOut, value: currentIndex)
+                .animation(.easeInOut, value: safeIndex)
 
                 HStack {
-                    if currentIndex > 0 {
-                        Button("Back") { withAnimation { currentIndex -= 1 } }
+                    if safeIndex > 0 {
+                        Button("Back") { withAnimation { currentIndex = safeIndex - 1 } }
                     }
                     Spacer()
-                    if currentIndex < questions.count - 1 || viewModel.evaluation?.isReadyForSubmission == false {
+                    if safeIndex < questions.count - 1 || viewModel.evaluation?.isReadyForSubmission == false {
                         Button("Next") {
-                            persistAnswer(for: questions[currentIndex])
+                            persistAnswer(for: questions[safeIndex])
                             viewModel.reevaluateDraft()
                             withAnimation {
-                                // Clamp currentIndex to new questions count if it shrank
                                 let newCount = viewModel.evaluation?.missingRequirements.count ?? questions.count
-                                currentIndex = min(currentIndex + 1, max(0, newCount - 1))
-                                // Reset local inputs for next question
+                                currentIndex = min(safeIndex + 1, max(0, newCount - 1))
                                 resetAnswerState()
                             }
                         }
                         .buttonStyle(.borderedProminent)
                     } else {
                         Button("Get Plan") {
-                            persistAnswer(for: questions[currentIndex])
+                            persistAnswer(for: questions[safeIndex])
                             viewModel.reevaluateDraft()
-                            // If ready, proceed to final submission flow; else the UI will reflect updated questions
                             if viewModel.evaluation?.isReadyForSubmission == true {
-                                // TODO: Call your final submission endpoint when implemented
-                                // For now, keep the state as loaded with the latest evaluation
+                                Task { await viewModel.submitFinalDraft() }
                             }
                         }
                         .buttonStyle(.borderedProminent)
                     }
+                }
+            }
+            .onAppear {
+                // Sync currentIndex if it drifted out of range
+                if currentIndex >= questions.count {
+                    currentIndex = max(0, questions.count - 1)
                 }
             }
         }
@@ -198,6 +212,144 @@ struct FollowUpQuestionsView : View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
+    }
+    
+    // MARK: - Final Result
+    @ViewBuilder
+    private func finalResultView(response: FinalTripResponse) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                // Itinerary header
+                Text(response.itinerary.title)
+                    .font(.title2.weight(.bold))
+                
+                Text(response.itinerary.summary)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                
+                // Day-by-day breakdown
+                ForEach(Array(response.itinerary.days.enumerated()), id: \.offset) { index, day in
+                    dayCard(day: day, dayNumber: index + 1)
+                }
+                
+                // Flight options
+                if !response.flightOptions.isEmpty {
+                    sectionHeader("Flights")
+                    ForEach(Array(response.flightOptions.enumerated()), id: \.offset) { _, flight in
+                        flightCard(flight: flight)
+                    }
+                }
+                
+                // Hotel options
+                if !response.hotelOptions.isEmpty {
+                    sectionHeader("Hotels")
+                    ForEach(Array(response.hotelOptions.enumerated()), id: \.offset) { _, hotel in
+                        hotelCard(hotel: hotel)
+                    }
+                }
+            }
+            .padding(.vertical)
+        }
+    }
+    
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.title3.weight(.semibold))
+            .padding(.top, 8)
+    }
+    
+    private func dayCard(day: TripDay, dayNumber: Int) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Day \(dayNumber)")
+                .font(.headline)
+            
+            partOfDayView(label: "Morning", part: day.morning)
+            partOfDayView(label: "Afternoon", part: day.afternoon)
+            partOfDayView(label: "Evening", part: day.evening)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.systemGray6)))
+    }
+    
+    private func partOfDayView(label: String, part: PartOfDay) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.subheadline.weight(.semibold))
+            
+            if let foods = part.foodOptions, !foods.isEmpty {
+                Text("Eat: \(foods.joined(separator: ", "))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            if !part.placesToVisitDistance.isEmpty {
+                ForEach(Array(part.placesToVisitDistance.keys.sorted()), id: \.self) { place in
+                    let dist = part.placesToVisitDistance[place] ?? 0
+                    Text("\(place) — \(String(format: "%.1f", dist)) km")
+                        .font(.caption)
+                }
+            }
+            
+            if part.includeNap {
+                Text("Nap time scheduled")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+        }
+    }
+    
+    private func flightCard(flight: FlightOption) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(flight.airline)
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                if let price = flight.price {
+                    Text("$\(price)")
+                        .font(.subheadline.weight(.bold))
+                }
+            }
+            Text("\(flight.origin) → \(flight.destination)")
+                .font(.caption)
+            HStack {
+                Text("Departs: \(flight.departureTime)")
+                Spacer()
+                Text("Returns: \(flight.returnTime)")
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            
+            if !flight.layovers.isEmpty {
+                Text("Layovers: \(flight.layovers.joined(separator: ", "))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Text(flight.reason)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.systemGray6)))
+    }
+    
+    private func hotelCard(hotel: HotelOption) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("$\(String(format: "%.0f", hotel.price)) total")
+                    .font(.subheadline.weight(.semibold))
+                Text("\(hotel.numberOfDays) nights · \(hotel.numberOfRooms) room(s)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text("\(String(format: "%.1f", hotel.distanceFromAirport)) km from airport")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.systemGray6)))
     }
     
     private func persistAnswer(for requirement: TripRequirement) {

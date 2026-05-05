@@ -59,7 +59,7 @@ An end-to-end system that turns an open-ended travel prompt into a structured tr
 - Submit the enriched draft to `POST /finalTripRequest`.
 - Render the returned itinerary and options; provide controls for prompt editing and CSV export.
 
-## Roadmap (not this version)
+## Roadmap
 - Add user profiles and saved preferences.
 - Improve scoring models for flights and stays.
 - Support multi-city itineraries and complex constraints.

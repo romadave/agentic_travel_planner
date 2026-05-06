@@ -50,12 +50,7 @@ struct FollowUpQuestionsView: View {
                 loadedView(evaluation: evaluation)
 
             case .submittingFinal:
-                VStack(spacing: S.sm) {
-                    ProgressView()
-                    Text("Building your trip plan...")
-                        .font(T.body)
-                        .foregroundColor(C.textSecondary)
-                }
+                PlanningLoadingView(draft: viewModel.tripDraft ?? TripRequestDraft())
 
             case .finalResult(let response):
                 finalResultView(response: response)

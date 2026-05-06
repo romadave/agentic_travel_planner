@@ -447,29 +447,26 @@ struct FollowUpQuestionsView: View {
     private func finalResultView(response: FinalTripResponse) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: S.md) {
-                Text(response.itinerary.title)
-                    .font(T.headlineLG)
-                    .foregroundColor(C.textPrimary)
+                ForEach(Array(response.itineraryOptions.enumerated()), id: \.element.optionNumber) { _, option in
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(option.style)
+                            .font(T.headlineLG)
+                            .foregroundColor(C.textPrimary)
 
-                Text(response.itinerary.summary)
-                    .font(T.body)
-                    .foregroundColor(C.textSecondary)
+                        Text(option.description)
+                            .font(T.body)
+                            .foregroundColor(C.textSecondary)
 
-                ForEach(Array(response.itinerary.days.enumerated()), id: \.offset) { index, day in
-                    dayCard(day: day, dayNumber: index + 1)
-                }
-
-                if !response.flightOptions.isEmpty {
-                    sectionHeader("Flights")
-                    ForEach(Array(response.flightOptions.enumerated()), id: \.offset) { _, flight in
-                        flightCard(flight: flight)
+                        ForEach(Array(option.days.enumerated()), id: \.element.dayNumber) { _, day in
+                            dayCard(day: day)
+                        }
                     }
                 }
 
-                if !response.hotelOptions.isEmpty {
-                    sectionHeader("Hotels")
-                    ForEach(Array(response.hotelOptions.enumerated()), id: \.offset) { _, hotel in
-                        hotelCard(hotel: hotel)
+                if !response.flights.isEmpty {
+                    sectionHeader("Flights")
+                    ForEach(Array(response.flights.enumerated()), id: \.offset) { _, flight in
+                        flightCard(flight: flight)
                     }
                 }
             }
@@ -485,15 +482,21 @@ struct FollowUpQuestionsView: View {
             .padding(.top, 8)
     }
 
-    private func dayCard(day: TripDay, dayNumber: Int) -> some View {
+    private func dayCard(day: TripDay) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Day \(dayNumber)")
+            Text("Day \(day.dayNumber) — \(day.area)")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(C.textPrimary)
 
-            partOfDayView(label: "Morning", part: day.morning)
-            partOfDayView(label: "Afternoon", part: day.afternoon)
-            partOfDayView(label: "Evening", part: day.evening)
+            if let morning = day.morning {
+                partOfDayView(label: "Morning", part: morning)
+            }
+            if let afternoon = day.afternoon {
+                partOfDayView(label: "Afternoon", part: afternoon)
+            }
+            if let evening = day.evening {
+                partOfDayView(label: "Evening", part: evening)
+            }
         }
         .padding(S.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -509,19 +512,22 @@ struct FollowUpQuestionsView: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(C.textPrimary)
 
-            if let foods = part.foodOptions, !foods.isEmpty {
-                Text("Eat: \(foods.joined(separator: ", "))")
+            if let activity = part.activity {
+                Text(activity)
                     .font(.caption)
                     .foregroundColor(C.textSecondary)
             }
 
-            if !part.placesToVisitDistance.isEmpty {
-                ForEach(Array(part.placesToVisitDistance.keys.sorted()), id: \.self) { place in
-                    let dist = part.placesToVisitDistance[place] ?? 0
-                    Text("\(place) — \(String(format: "%.1f", dist)) km")
-                        .font(.caption)
-                        .foregroundColor(C.textPrimary)
-                }
+            if let place = part.place {
+                Text(place)
+                    .font(.caption)
+                    .foregroundColor(C.textPrimary)
+            }
+
+            if let food = part.foodSuggestion {
+                Text("Eat: \(food)")
+                    .font(.caption)
+                    .foregroundColor(C.textSecondary)
             }
 
             if part.includeNap {
@@ -538,10 +544,8 @@ struct FollowUpQuestionsView: View {
                 Text(flight.airline)
                     .font(.system(size: 14, weight: .semibold))
                 Spacer()
-                if let price = flight.price {
-                    Text("$\(price)")
-                        .font(.system(size: 14, weight: .bold))
-                }
+                Text("$\(flight.price)")
+                    .font(.system(size: 14, weight: .bold))
             }
             Text("\(flight.origin) → \(flight.destination)")
                 .font(.caption)
@@ -561,27 +565,6 @@ struct FollowUpQuestionsView: View {
 
             Text(flight.reason)
                 .font(.caption2)
-                .foregroundColor(C.textSecondary)
-        }
-        .padding(S.sm)
-        .background(
-            RoundedRectangle(cornerRadius: R.inner, style: .continuous)
-                .fill(Color.white)
-        )
-    }
-
-    private func hotelCard(hotel: HotelOption) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("$\(String(format: "%.0f", hotel.price)) total")
-                    .font(.system(size: 14, weight: .semibold))
-                Text("\(hotel.numberOfDays) nights · \(hotel.numberOfRooms) room(s)")
-                    .font(.caption)
-                    .foregroundColor(C.textSecondary)
-            }
-            Spacer()
-            Text("\(String(format: "%.1f", hotel.distanceFromAirport)) km from airport")
-                .font(.caption)
                 .foregroundColor(C.textSecondary)
         }
         .padding(S.sm)

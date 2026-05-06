@@ -62,7 +62,7 @@ final class TripDraftViewModel : ObservableObject {
             
             let tripResponse = try await fetchItinaray(from: draft)
             
-            print("itinerary", tripResponse.itinerary.summary)
+            print("itinerary options", tripResponse.itineraryOptions.count)
             screen2State = .finalResult(tripResponse)
         } catch {
             screen2State = .failed(error.localizedDescription)
@@ -72,7 +72,7 @@ final class TripDraftViewModel : ObservableObject {
     private func fetchItinaray(from draft: TripRequestDraft) async throws -> FinalTripResponse {
         let response = try await apiService.submitFinalDraft(draft)
         
-        print("response", response.itinerary.summary)
+        print("response", response.itineraryOptions.count, "options")
         
         return response.self
     }

@@ -1,13 +1,18 @@
 //
-//  HotelOptions.swift
+//  HotelOption.swift
 //  TravelPlanner
 //
-//  Created by Roma Dave on 4/6/26.
-//
 
-struct HotelOption : Codable, Sendable, Equatable {
-    let price: Float
-    let numberOfDays : Int
-    let distanceFromAirport: Float
-    let numberOfRooms : Int
+import Foundation
+
+struct HotelOption: Codable, Equatable, Sendable {
+    let name: String
+    let area: String
+    let rating: Float
+    let pricePerNight: Float
+    let totalPrice: Float
+    let amenities: [String]
+    let score: Int
+    let reason: String
+    let bookingUrl: String?
 }

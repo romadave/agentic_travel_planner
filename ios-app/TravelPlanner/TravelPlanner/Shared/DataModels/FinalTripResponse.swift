@@ -1,15 +1,13 @@
 //
-//  TripFinalResult.swift
+//  FinalTripResponse.swift
 //  TravelPlanner
-//
-//  Created by Roma Dave on 4/4/26.
 //
 
 import Foundation
 
-struct FinalTripResponse : Codable, Equatable {
-    let itinerary : TripItinerary
-    let flightOptions: [FlightOption]
-    let hotelOptions: [HotelOption]
-    let cannotGenerateItinerary: Bool
+struct FinalTripResponse: Codable, Equatable, Sendable {
+    let flights: [FlightOption]
+    let itineraryOptions: [ItineraryOption]
+    let cannotGenerate: Bool
+    let reason: String?
 }

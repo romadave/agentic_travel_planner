@@ -1,24 +1,23 @@
 //
-//  FlightOptions.swift
+//  FlightOption.swift
 //  TravelPlanner
-//
-//  Created by Roma Dave on 4/6/26.
 //
 
 import Foundation
 
 struct FlightOption: Codable, Equatable, Sendable {
-    let rank : Int?
+    let rank: Int
     let airline: String
-    let score: Int?
+    let score: Int
     let origin: String
     let destination: String
     let reason: String
-    let price: Int?
-    let duration: Float?
+    let price: Int
+    let duration: Float         // hours
     let layovers: [String]
-    let departureDate : Date
+    let departureDate: String
     let departureTime: String
-    let returnDate: Date
+    let returnDate: String
     let returnTime: String
+    let bookingUrl: String?
 }

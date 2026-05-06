@@ -115,22 +115,12 @@ struct Screen1View: View {
                 .tracking(0.5)
 
             VStack(alignment: .leading, spacing: 12) {
-                ZStack(alignment: .topLeading) {
-                    TextEditor(text: $viewModel.userPrompt)
-                        .font(T.userInput)
-                        .foregroundColor(C.textPrimary)
-                        .scrollContentBackground(.hidden)
-                        .frame(minHeight: 60)
-
-                    if viewModel.userPrompt.isEmpty {
-                        Text("I want to go to...")
-                            .font(T.userInput)
-                            .foregroundColor(C.placeholder)
-                            .padding(.top, 8)
-                            .padding(.leading, 5)
-                            .allowsHitTesting(false)
-                    }
-                }
+                StyledTextField(
+                    text: $viewModel.userPrompt,
+                    hint: "I want to go to...",
+                    multiline: true,
+                    minHeight: 60
+                )
 
                 if showError {
                     Text("Please enter a trip description.")

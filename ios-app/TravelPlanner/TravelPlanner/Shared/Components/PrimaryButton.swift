@@ -1,5 +1,5 @@
 //
-//  P.swift
+//  PrimaryButton.swift
 //  TravelPlanner
 //
 //  Created by Roma Dave on 3/16/26.
@@ -7,35 +7,47 @@
 
 import SwiftUI
 
-struct PrimaryButton<Content:View> : View {
-    let content : Content
+struct PrimaryButton<Content: View>: View {
+    let content: Content
     let action: () -> Void
     let buttonClicked: Bool
+    let backgroundColor: Color
+    let icon: String?
     
-    init(action: @escaping () -> Void,
-         @ViewBuilder content: () -> Content, buttonClicked: Bool) {
-            self.action = action
-            self.content = content()
-            self.buttonClicked = buttonClicked
+    private static var defaultColor: Color {
+        DesignTokens.Colors.buttonPrimary
     }
     
-    var body : some View {
-        Button (action: action){
-            content
-                .frame(maxWidth: .infinity)
-                .frame(height: 64)
-                .background(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 142/255, green: 58/255, blue: 255/255),
-                            Color(red: 206/255, green: 61/255, blue: 240/255)
-                ],
-                        startPoint: .leading,
-                        endPoint: .trailing))
-                .clipShape(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                )
-                .shadow(color: Color.purple.opacity(0.22), radius: 10, x:0, y:6)
+    init(
+        action: @escaping () -> Void,
+        @ViewBuilder content: () -> Content,
+        buttonClicked: Bool,
+        backgroundColor: Color? = nil,
+        icon: String? = nil
+    ) {
+        self.action = action
+        self.content = content()
+        self.buttonClicked = buttonClicked
+        self.backgroundColor = backgroundColor ?? Self.defaultColor
+        self.icon = icon
+    }
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                content
+                if let icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 14, weight: .medium))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .foregroundColor(.white)
+            .background(
+                Capsule()
+                    .fill(backgroundColor)
+            )
         }
         .buttonStyle(.plain)
         .disabled(buttonClicked)

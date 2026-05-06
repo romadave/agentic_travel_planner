@@ -1,3 +1,140 @@
+# How to Run the Backend
+
+## 1. Activate the virtual environment
+Every time you open a new terminal, run this first:
+```
+source .venv/bin/activate
+```
+You'll see (.venv) appear at the start of your terminal prompt.
+This means Python is now using the packages installed in this project, not your system Python.
+
+Why: Python projects use virtual environments to isolate dependencies.
+Each project gets its own sandbox so packages don't conflict across projects.
+Think of it like a Flutter pubspec.yaml — but at the Python level.
+
+## 2. Install dependencies (first time only, or after adding new packages)
+```
+pip install -r requirements.txt
+```
+This reads requirements.txt and installs every listed package.
+After adding a new package with pip install <package>, run:
+```
+pip freeze > requirements.txt
+```
+This saves the updated list back to requirements.txt so teammates can install the same versions.
+
+## 3. Set up your .env file
+Create a file called .env in the backend/ folder (same level as requirements.txt).
+Add your API keys:
+```
+GEMINI_API_KEY=your_gemini_key_here
+SERP_API_KEY=your_serpapi_key_here
+```
+This file is in .gitignore — it will never be committed to git.
+python-dotenv reads this file automatically when the server starts.
+
+## 4. Start the server
+```
+uvicorn app.main:app --reload
+```
+Breaking this down:
+- uvicorn       → the ASGI server that runs FastAPI apps
+- app.main      → the Python module path (backend/app/main.py)
+- :app          → the FastAPI instance inside main.py (the variable named "app")
+- --reload      → auto-restarts the server when you save a file (dev mode only)
+
+The server runs at: http://127.0.0.1:8000
+
+## 5. Test your endpoints
+
+Option A — Swagger UI (recommended for learning):
+Open http://127.0.0.1:8000/docs in your browser.
+FastAPI auto-generates an interactive playground for every endpoint.
+You can paste JSON, hit Send, and see the response — no Postman needed.
+
+Option B — curl from terminal:
+```
+curl -X POST http://127.0.0.1:8000/finalTripRequest \
+  -H "Content-Type: application/json" \
+  -d '{
+    "route": { "originText": "SFO", "destinationText": "Maui" },
+    "schedule": {
+      "departureDateText": "2026-09-05",
+      "returnDateText": "2026-09-10",
+      "numberOfDays": 5
+    },
+    "travelerInfo": { "travelerCount": 2, "hasKids": true, "youngestTravelerAge": 2 },
+    "transportPreferences": { "layoversAllowed": false, "budgetFlight": false },
+    "lodgingPreferences": { "hotel": true, "isFamilyFriendly": true }
+  }'
+```
+
+## 6. Stop the server
+Press Ctrl+C in the terminal where uvicorn is running.
+
+## Troubleshooting
+- "SERP_API_KEY is not set" → your .env file is missing the key or you forgot to save it
+- "ModuleNotFoundError" → your venv is not activated, run source .venv/bin/activate
+- "Address already in use" → another process is on port 8000, run: lsof -i :8000 then kill <PID>
+
+---
+
+# Debugging External API Responses
+
+When an external API (SerpAPI, Gemini, etc.) returns unexpected data — wrong fields, zeros, nulls — the fastest way to debug is to write a small throwaway script that calls the API directly and prints the raw response.
+
+## Why this works
+You can't trust assumptions about what an API returns. The only way to know the real shape of the data is to print it and look. Field names, nesting, and data types often differ from documentation.
+
+## The pattern
+Create a file like debug_hotels.py in your backend/ folder:
+
+```python
+import asyncio
+import json
+from dotenv import load_dotenv
+load_dotenv()
+
+from app.client.serp_client import serp_client
+
+async def main():
+    raw = await serp_client.search_hotels(
+        location="Kaanapali, Maui",
+        check_in_date="2026-09-05",
+        check_out_date="2026-09-10",
+        adults=2,
+    )
+    # Print first 2 results only so it's readable
+    props = raw.get("properties", [])[:2]
+    print(json.dumps(props, indent=2))
+
+asyncio.run(main())
+```
+
+Run it — but always activate the venv first so Python can find your project packages:
+```
+source .venv/bin/activate
+python3 debug_hotels.py
+```
+
+Why source first: your project packages (serpapi, google-genai, etc.) are installed inside .venv, not in your system Python. Without activating, python3 debug_hotels.py will fail with ModuleNotFoundError because it can't find app.client.serp_client or any other local imports.
+
+Read the output and find the real field paths. Example of what we discovered:
+- We assumed: prices[0].rate_per_night.extracted_lowest
+- Reality:     prop.rate_per_night.extracted_lowest  ← one level up
+- We assumed: prices[0].link
+- Reality:     prop.link  ← directly on the property
+
+Then fix your extraction code to use the real paths, and delete the debug file.
+
+## Key rules
+- Slice the results ([:2]) — printing 10 hotels with full image arrays is unreadable
+- Use json.dumps(data, indent=2) — raw dict output is hard to scan
+- Delete the debug file after — it's a throwaway tool, not production code
+- The debug file lives in backend/ (same level as requirements.txt), not inside app/
+
+---
+
 # Fast API:
 FastAPI is extremely popular for AI backends because:
 

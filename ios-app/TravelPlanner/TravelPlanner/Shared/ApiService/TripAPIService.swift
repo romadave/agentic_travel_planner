@@ -65,6 +65,7 @@ final class TripAPIService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 300 // 5 minutes — backend orchestrates multiple agents
         request.httpBody = try JSONEncoder().encode(draft)
         
         let (data, response) = try await URLSession.shared.data(for: request)

@@ -53,17 +53,19 @@ final class TripDraftViewModel : ObservableObject {
         do {
             guard let draft = tripDraft else {
                 print("no draft found")
-                return;
+                screen2State = .failed("No trip draft available.")
+                return
             }
             
-            print("fetching itinaray")
-            // TODO : figure out how to send a non-null value
+            screen2State = .submittingFinal
+            print("fetching itinerary")
             
             let tripResponse = try await fetchItinaray(from: draft)
             
-            print("itinaray", tripResponse.itinerary.summary)
+            print("itinerary", tripResponse.itinerary.summary)
+            screen2State = .finalResult(tripResponse)
         } catch {
-            
+            screen2State = .failed(error.localizedDescription)
         }
     }
     

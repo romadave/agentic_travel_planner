@@ -1,5 +1,7 @@
 # Trip Planner – Intelligent Travel Planning Pipeline
 
+Excalidraw Link : https://excalidraw.com/#json=Jlz6wVJ5NnkrPLAq7jh5l,TLo0LQVwbnhNTSo2K2pXnw
+
 An end-to-end system that turns an open-ended travel prompt into a structured trip plan with flights, stays, and a concise itinerary. The app guides the user from an initial idea to a shareable result (including CSV export), using an evaluation loop to fill in missing details and improve the plan.
 ## Overview
 - Input: An open-ended prompt from the user (e.g., "Weekend in Paris in June, budget-conscious, prefer museums and walkable neighborhoods").

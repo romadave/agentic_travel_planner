@@ -98,3 +98,7 @@ fastlane/test_output
 coverage/
 tmp/
 temp/
+
+# Data files
+*.xlsx
+*.csv

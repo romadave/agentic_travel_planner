@@ -162,7 +162,8 @@ struct ItinerariesView: View {
                     ItineraryView(
                         itinerary: option,
                         flights: flights,
-                        destination: destination
+                        destination: destination,
+                        travelerCount: draft.travelerInfo.travelerCount ?? 1
                     )
                 } label: {
                     itineraryCard(option)

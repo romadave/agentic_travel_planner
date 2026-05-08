@@ -9,8 +9,7 @@ struct ItineraryView: View {
     let itinerary: ItineraryOption
     let flights: [FlightOption]
     let destination: String
-
-
+    var travelerCount: Int = 1
 
     private typealias C = DesignTokens.Colors
     private typealias T = DesignTokens.Typography
@@ -18,6 +17,7 @@ struct ItineraryView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab: ItineraryTab = .dayByDay
+    @State private var showShareSheet = false
 
     private enum ItineraryTab: String, CaseIterable {
         case dayByDay = "Day By Day"
@@ -74,12 +74,26 @@ struct ItineraryView: View {
                     .foregroundColor(C.textSecondary)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(action: {}) {
+                Button { showShareSheet = true } label: {
                     Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(C.textPrimary)
                 }
             }
+        }
+        .sheet(isPresented: $showShareSheet) {
+            ShareResultView(
+                itinerary: itinerary,
+                flights: flights,
+                destination: destination,
+                origin: topFlight?.origin ?? "",
+                travelerCount: travelerCount,
+                onStartNewTrip: {
+                    // V0: dismiss back to root — V2 will handle saved trips
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.hidden)
         }
     }
 
@@ -313,7 +327,7 @@ struct ItineraryView: View {
     // MARK: - Book Button
 
     private var bookButton: some View {
-        Button(action: {}) {
+        Button(action: { showShareSheet = true }) {
             HStack {
                 Text("Book this trip — $\(totalPrice)")
                     .font(.system(size: 16, weight: .semibold))
@@ -392,7 +406,8 @@ struct ItineraryView: View {
         ItineraryView(
             itinerary: itinerary,
             flights: flights,
-            destination: "Lisbon"
+            destination: "Lisbon",
+            travelerCount: 3
         )
     }
 }

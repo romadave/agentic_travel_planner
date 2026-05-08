@@ -87,5 +87,42 @@ final class TripAPIService {
         
         return try JSONDecoder().decode(FinalTripResponse.self, from: data)
     }
-    
+
+    func shareItinerary(email: String, itinerary: ItineraryOption, flights: [FlightOption]) async throws {
+        let endPoint = baseURL + "/share-itinerary"
+        guard let url = URL(string: endPoint) else {
+            throw URLError(.badURL)
+        }
+
+        let payload = ShareItineraryRequest(
+            email: email,
+            itinerary: itinerary,
+            flights: flights
+        )
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 60
+        request.httpBody = try JSONEncoder().encode(payload)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        guard 200..<300 ~= httpResponse.statusCode else {
+            let serverMessage = String(data: data, encoding: .utf8) ?? "Unknown server error"
+            throw NSError(domain: "TripAPIService", code: httpResponse.statusCode, userInfo: [
+                NSLocalizedDescriptionKey: serverMessage
+            ])
+        }
+    }
+}
+
+struct ShareItineraryRequest: Codable, Sendable {
+    let email: String
+    let itinerary: ItineraryOption
+    let flights: [FlightOption]
 }

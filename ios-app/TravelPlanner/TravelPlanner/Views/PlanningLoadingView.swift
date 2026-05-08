@@ -15,6 +15,10 @@ struct PlanningLoadingView: View {
     @State private var currentStepIndex: Int = 0
     @State private var orbitAngle: Double = 0
     @State private var pulseScale: Double = 1.0
+    @State private var tripResponse: FinalTripResponse? = nil
+    @State private var errorMessage: String? = nil
+
+    private let apiService = TripAPIService()
 
     private var steps: [String] {
         buildSteps(from: draft)
@@ -24,39 +28,109 @@ struct PlanningLoadingView: View {
         ZStack {
             C.screenBg.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                // Top-right "PLANNING..." label
-                HStack {
-                    Spacer()
-                    Text("PLANNING...")
-                        .font(.system(size: 12, weight: .medium))
-                        .tracking(1.5)
-                        .foregroundColor(C.textSecondary)
-                }
-                .padding(.horizontal, S.md)
-                .padding(.top, 12)
-
-                Spacer()
-
-                // Animated spinner
-                spinnerView
-                    .padding(.bottom, 40)
-
-                // Headline
-                headlineView
-                    .padding(.horizontal, S.md)
-
-                Spacer()
-
-                // Step checklist at bottom
-                stepChecklist
-                    .padding(.horizontal, S.md)
-                    .padding(.bottom, S.lg)
+            if let error = errorMessage {
+                errorView(error)
+            } else {
+                loadingContent
+            }
+        }
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: Binding(
+            get: { tripResponse != nil },
+            set: { if !$0 { tripResponse = nil } }
+        )) {
+            if let response = tripResponse {
+                ItinerariesView(response: response, draft: draft)
             }
         }
         .onAppear {
             startOrbitAnimation()
             startStepProgression()
+            fetchTrip()
+        }
+    }
+
+    // MARK: - Loading Content
+
+    private var loadingContent: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                Text("PLANNING...")
+                    .font(.system(size: 12, weight: .medium))
+                    .tracking(1.5)
+                    .foregroundColor(C.textSecondary)
+            }
+            .padding(.horizontal, S.md)
+            .padding(.top, 12)
+
+            Spacer()
+
+            spinnerView
+                .padding(.bottom, 40)
+
+            headlineView
+                .padding(.horizontal, S.md)
+
+            Spacer()
+
+            stepChecklist
+                .padding(.horizontal, S.md)
+                .padding(.bottom, S.lg)
+        }
+    }
+
+    // MARK: - Error
+
+    private func errorView(_ message: String) -> some View {
+        VStack(spacing: 16) {
+            Spacer()
+
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 40))
+                .foregroundColor(C.tipIcon)
+
+            Text("Something went wrong")
+                .font(T.headlineLG)
+                .foregroundColor(C.textPrimary)
+
+            Text(message)
+                .font(T.body)
+                .foregroundColor(C.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, S.lg)
+
+            Button {
+                errorMessage = nil
+                fetchTrip()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.clockwise")
+                    Text("Try Again")
+                }
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, S.lg)
+                .padding(.vertical, 14)
+                .background(C.buttonPrimary)
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radii.pill))
+            }
+
+            Spacer()
+        }
+    }
+
+    // MARK: - API Call
+
+    private func fetchTrip() {
+        Task {
+            do {
+                let response = try await apiService.submitFinalDraft(draft)
+                tripResponse = response
+            } catch {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -64,18 +138,15 @@ struct PlanningLoadingView: View {
 
     private var spinnerView: some View {
         ZStack {
-            // Outer dashed orbit ring
             Circle()
                 .stroke(style: StrokeStyle(lineWidth: 1, dash: [3, 6]))
                 .frame(width: 120, height: 120)
                 .foregroundColor(C.patternLine)
 
-            // Orbiting dots
             orbitDot(offset: 0, color: C.tipIcon, size: 8)
             orbitDot(offset: .pi * 0.6, color: C.textSecondary.opacity(0.5), size: 6)
             orbitDot(offset: .pi * 1.2, color: C.textSecondary.opacity(0.3), size: 5)
 
-            // Center dark circle with icon
             Circle()
                 .fill(C.buttonPrimary)
                 .frame(width: 56, height: 56)
@@ -131,17 +202,14 @@ struct PlanningLoadingView: View {
     @ViewBuilder
     private func stepIndicator(for index: Int) -> some View {
         if index < currentStepIndex {
-            // Completed: checkmark
             Image(systemName: "checkmark")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(C.tipIcon)
         } else if index == currentStepIndex {
-            // Current: filled dot
             Circle()
                 .fill(C.textPrimary)
                 .frame(width: 8, height: 8)
         } else {
-            // Upcoming: empty/faint dot
             Circle()
                 .fill(C.patternLine)
                 .frame(width: 8, height: 8)
@@ -149,23 +217,13 @@ struct PlanningLoadingView: View {
     }
 
     private func stepTextColor(for index: Int) -> Color {
-        if index < currentStepIndex {
-            return C.textPrimary
-        } else if index == currentStepIndex {
-            return C.textPrimary
-        } else {
-            return C.textSecondary.opacity(0.5)
-        }
+        index <= currentStepIndex ? C.textPrimary : C.textSecondary.opacity(0.5)
     }
 
     private func stepOpacity(for index: Int) -> Double {
-        if index <= currentStepIndex {
-            return 1.0
-        } else if index == currentStepIndex + 1 {
-            return 0.5
-        } else {
-            return 0.3
-        }
+        if index <= currentStepIndex { return 1.0 }
+        if index == currentStepIndex + 1 { return 0.5 }
+        return 0.3
     }
 
     // MARK: - Animations
@@ -196,7 +254,6 @@ struct PlanningLoadingView: View {
 
         result.append("Reading your request...")
 
-        // Destination-aware step
         let dest = draft.route.destination
         if !dest.isEmpty {
             result.append("Scanning \(dest) destinations...")
@@ -204,7 +261,6 @@ struct PlanningLoadingView: View {
             result.append("Scanning destinations...")
         }
 
-        // Kid-aware step
         if draft.travelerInfo.hasKids == true {
             if let age = draft.travelerInfo.youngestTravelerAge, age <= 5 {
                 result.append("Filtering for toddler-friendly...")
@@ -215,7 +271,6 @@ struct PlanningLoadingView: View {
             result.append("Curating top experiences...")
         }
 
-        // Flight-aware step
         let origin = draft.route.origin
         if draft.transportPreferences.flightSelected == true && !origin.isEmpty {
             result.append("Pricing flights from \(origin)...")
@@ -225,7 +280,6 @@ struct PlanningLoadingView: View {
             result.append("Finding transport options...")
         }
 
-        // Lodging-aware step
         if draft.lodgingPreferences.hotel == true && draft.lodgingPreferences.isFamilyFriendly == true {
             result.append("Matching stays with cribs & kitchens...")
         } else if draft.lodgingPreferences.hotel == true {
@@ -236,7 +290,6 @@ struct PlanningLoadingView: View {
             result.append("Finding places to stay...")
         }
 
-        // Count-aware final step
         result.append("Drafting 3 itineraries...")
 
         return result
@@ -259,7 +312,7 @@ struct PlanningLoadingView: View {
     let calendar = Calendar.current
     let departure = calendar.date(from: DateComponents(year: 2026, month: 5, day: 10))
     let returnDate = calendar.date(from: DateComponents(year: 2026, month: 5, day: 20))
-    
+
     let draft = TripRequestDraft(
         route: Route(origin: "SFO", destination: "Paris"),
         schedule: Schedule(departureDate: departure, returnDate: returnDate),
@@ -267,7 +320,7 @@ struct PlanningLoadingView: View {
         transportPreferences: TransportPreferences(),
         lodgingPreferences: LodgingPreferences(hotel: true)
     )
-    
+
     NavigationStack {
         PlanningLoadingView(draft: draft)
     }

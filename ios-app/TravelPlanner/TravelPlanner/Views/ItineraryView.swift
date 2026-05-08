@@ -10,8 +10,7 @@ struct ItineraryView: View {
     let flights: [FlightOption]
     let destination: String
 
-    var onFlightsTapped: (() -> Void)? = nil
-    var onStayTapped: (() -> Void)? = nil
+
 
     private typealias C = DesignTokens.Colors
     private typealias T = DesignTokens.Typography
@@ -111,55 +110,66 @@ struct ItineraryView: View {
     private var quickAccessRow: some View {
         HStack(spacing: 12) {
             if let flight = topFlight {
-                quickAccessButton(
-                    icon: "sparkles",
-                    title: "Flights",
-                    subtitle: "$\(flight.price) · \(flight.airline)",
-                    action: { onFlightsTapped?() }
-                )
+                NavigationLink {
+                    FlightsView(flights: flights, origin: flight.origin, destination: flight.destination, departureDate: flight.departureDate, hasKids: itinerary.hotelStops.flatMap(\.hotels).first?.amenities.isEmpty == false)
+                } label: {
+                    quickAccessLabel(
+                        icon: "sparkles",
+                        title: "Flights",
+                        subtitle: "$\(flight.price) · \(flight.airline)"
+                    )
+                }
+                .buttonStyle(.plain)
             }
 
             if let hotel = topHotel {
-                quickAccessButton(
-                    icon: "bed.double",
-                    title: "Stay",
-                    subtitle: hotel.name,
-                    action: { onStayTapped?() }
-                )
+                NavigationLink {
+                    HotelsView(
+                        hotelStops: itinerary.hotelStops,
+                        destination: destination,
+                        departureDate: itinerary.days.first?.date ?? "",
+                        returnDate: itinerary.days.last?.date ?? "",
+                        hasKids: itinerary.hotelStops.flatMap(\.hotels).contains(where: { !$0.amenities.isEmpty })
+                    )
+                } label: {
+                    quickAccessLabel(
+                        icon: "bed.double",
+                        title: "Stay",
+                        subtitle: hotel.name
+                    )
+                }
+                .buttonStyle(.plain)
             }
         }
     }
 
-    private func quickAccessButton(icon: String, title: String, subtitle: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                Image(systemName: icon)
-                    .font(.system(size: 14))
-                    .foregroundColor(C.textSecondary)
-                    .frame(width: 32, height: 32)
-                    .background(C.iconBg)
-                    .clipShape(Circle())
+    private func quickAccessLabel(icon: String, title: String, subtitle: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundColor(C.textSecondary)
+                .frame(width: 32, height: 32)
+                .background(C.iconBg)
+                .clipShape(Circle())
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(title)
-                        .font(T.bodyMedium)
-                        .foregroundColor(C.textPrimary)
-                    Text(subtitle)
-                        .font(T.captionMd)
-                        .foregroundColor(C.textSecondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 12, weight: .medium))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(T.bodyMedium)
+                    .foregroundColor(C.textPrimary)
+                Text(subtitle)
+                    .font(T.captionMd)
                     .foregroundColor(C.textSecondary)
             }
-            .padding(12)
-            .background(.white)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radii.inner))
+
+            Spacer()
+
+            Image(systemName: "arrow.right")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(C.textSecondary)
         }
-        .buttonStyle(.plain)
+        .padding(12)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radii.inner))
     }
 
     // MARK: - Tab Bar
@@ -362,7 +372,7 @@ struct ItineraryView: View {
 
     let sampleHotelStops = [
         HotelStop(area: "Príncipe Real", nights: 7, hotels: [
-            HotelOption(name: "Casa Boma", area: "Príncipe Real", rating: 4.5, pricePerNight: 180, totalPrice: 3960, amenities: ["Pool", "Kitchen", "Crib"], score: 98, reason: "Great for families", bookingUrl: nil)
+            HotelOption(name: "Casa Boma", type: "Apartment", area: "Príncipe Real", rating: 4.5, pricePerNight: 180, totalPrice: 3960, amenities: ["Pool", "Kitchen", "Crib"], score: 98, reason: "Great for families", bookingUrl: nil)
         ])
     ]
 
@@ -375,7 +385,7 @@ struct ItineraryView: View {
     )
 
     let flights = [
-        FlightOption(rank: 1, airline: "TAP", score: 9, origin: "SFO", destination: "LIS", reason: "Direct route", price: 1180, duration: 11.3, layovers: ["JFK"], departureDate: "2026-07-12", departureTime: "18:30", returnDate: "2026-07-19", returnTime: "10:00", bookingUrl: nil)
+        FlightOption(rank: 1, airline: "TAP", flightNumber: "TP 206", score: 9, origin: "SFO", destination: "LIS", reason: "Direct route", price: 1180, duration: 11.3, layovers: ["JFK"], departureDate: "2026-07-12", departureTime: "18:30", returnDate: "2026-07-19", returnTime: "10:00", bookingUrl: nil, familyAmenities: ["Bassinet available"])
     ]
 
     NavigationStack {

@@ -7,6 +7,7 @@ import Foundation
 
 struct HotelOption: Codable, Equatable, Sendable {
     let name: String
+    let type: String?               // "Apartment", "Boutique Hotel", etc.
     let area: String
     let rating: Float
     let pricePerNight: Float

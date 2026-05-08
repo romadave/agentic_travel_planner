@@ -22,6 +22,7 @@ struct FollowUpQuestionsView: View {
     @State private var trainSelected = false
     @State private var hotelSelected = false
     @State private var airbnbSelected = false
+    @State private var navigateToPlanning = false
 
     private typealias C = DesignTokens.Colors
     private typealias T = DesignTokens.Typography
@@ -49,12 +50,6 @@ struct FollowUpQuestionsView: View {
             case .loaded(let evaluation):
                 loadedView(evaluation: evaluation)
 
-            case .submittingFinal:
-                PlanningLoadingView(draft: viewModel.tripDraft ?? TripRequestDraft())
-
-            case .finalResult(let response):
-                finalResultView(response: response)
-
             case .failed(let errorMessage):
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Something went wrong")
@@ -78,6 +73,9 @@ struct FollowUpQuestionsView: View {
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: $navigateToPlanning) {
+            PlanningLoadingView(draft: viewModel.tripDraft ?? TripRequestDraft())
+        }
     }
 
     // MARK: - Loaded (stepper) view
@@ -364,7 +362,7 @@ struct FollowUpQuestionsView: View {
 
         if isLastStep || questions.isEmpty {
             if viewModel.evaluation?.isReadyForSubmission == true {
-                Task { await viewModel.submitFinalDraft() }
+                navigateToPlanning = true
             }
         } else {
             withAnimation {
@@ -441,138 +439,6 @@ struct FollowUpQuestionsView: View {
         }
     }
 
-    // MARK: - Final Result
-
-    @ViewBuilder
-    private func finalResultView(response: FinalTripResponse) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: S.md) {
-                ForEach(Array(response.itineraryOptions.enumerated()), id: \.element.optionNumber) { _, option in
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(option.style)
-                            .font(T.headlineLG)
-                            .foregroundColor(C.textPrimary)
-
-                        Text(option.description)
-                            .font(T.body)
-                            .foregroundColor(C.textSecondary)
-
-                        ForEach(Array(option.days.enumerated()), id: \.element.dayNumber) { _, day in
-                            dayCard(day: day)
-                        }
-                    }
-                }
-
-                if !response.flights.isEmpty {
-                    sectionHeader("Flights")
-                    ForEach(Array(response.flights.enumerated()), id: \.offset) { _, flight in
-                        flightCard(flight: flight)
-                    }
-                }
-            }
-            .padding(.horizontal, S.md)
-            .padding(.vertical, S.lg)
-        }
-    }
-
-    private func sectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.system(size: 20, weight: .semibold, design: .serif))
-            .foregroundColor(C.textPrimary)
-            .padding(.top, 8)
-    }
-
-    private func dayCard(day: TripDay) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Day \(day.dayNumber) — \(day.area)")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(C.textPrimary)
-
-            if let morning = day.morning {
-                partOfDayView(label: "Morning", part: morning)
-            }
-            if let afternoon = day.afternoon {
-                partOfDayView(label: "Afternoon", part: afternoon)
-            }
-            if let evening = day.evening {
-                partOfDayView(label: "Evening", part: evening)
-            }
-        }
-        .padding(S.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: R.inner, style: .continuous)
-                .fill(Color.white)
-        )
-    }
-
-    private func partOfDayView(label: String, part: PartOfDay) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(C.textPrimary)
-
-            if let activity = part.activity {
-                Text(activity)
-                    .font(.caption)
-                    .foregroundColor(C.textSecondary)
-            }
-
-            if let place = part.place {
-                Text(place)
-                    .font(.caption)
-                    .foregroundColor(C.textPrimary)
-            }
-
-            if let food = part.foodSuggestion {
-                Text("Eat: \(food)")
-                    .font(.caption)
-                    .foregroundColor(C.textSecondary)
-            }
-
-            if part.includeNap {
-                Text("Nap time scheduled")
-                    .font(.caption)
-                    .foregroundColor(C.tipIcon)
-            }
-        }
-    }
-
-    private func flightCard(flight: FlightOption) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(flight.airline)
-                    .font(.system(size: 14, weight: .semibold))
-                Spacer()
-                Text("$\(flight.price)")
-                    .font(.system(size: 14, weight: .bold))
-            }
-            Text("\(flight.origin) → \(flight.destination)")
-                .font(.caption)
-            HStack {
-                Text("Departs: \(flight.departureTime)")
-                Spacer()
-                Text("Returns: \(flight.returnTime)")
-            }
-            .font(.caption)
-            .foregroundColor(C.textSecondary)
-
-            if !flight.layovers.isEmpty {
-                Text("Layovers: \(flight.layovers.joined(separator: ", "))")
-                    .font(.caption)
-                    .foregroundColor(C.textSecondary)
-            }
-
-            Text(flight.reason)
-                .font(.caption2)
-                .foregroundColor(C.textSecondary)
-        }
-        .padding(S.sm)
-        .background(
-            RoundedRectangle(cornerRadius: R.inner, style: .continuous)
-                .fill(Color.white)
-        )
-    }
 }
 
 // MARK: - FlowLayout (wrapping horizontal layout for chips)

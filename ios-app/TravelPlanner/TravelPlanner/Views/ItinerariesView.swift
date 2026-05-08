@@ -6,17 +6,8 @@
 import SwiftUI
 
 struct ItinerariesView: View {
-    let destination: String                 // "Lisbon"
-    let country: String                     // "Portugal"
-    let tagline: String                     // "Seven tiled hills, sea-breeze mornings..."
-    let weather: String                     // "26° · Sunny"
-    let flightSummary: String               // "11h 20m (1 stop)"
-    let timezone: String                    // "GMT+1"
-    let itineraryOptions: [ItineraryOption]
-    let flights: [FlightOption]
-    let hasKids: Bool
-
-    var onSelectItinerary: ((ItineraryOption) -> Void)? = nil
+    let response: FinalTripResponse
+    let draft: TripRequestDraft
 
     private typealias C = DesignTokens.Colors
     private typealias T = DesignTokens.Typography
@@ -24,6 +15,26 @@ struct ItinerariesView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var toddlerFriendly: Bool = false
+
+    // MARK: - Derived properties
+
+    private var destination: String { draft.route.destination }
+    private var country: String { response.destinationInfo.country }
+    private var tagline: String { response.destinationInfo.tagline }
+    private var weather: String { response.destinationInfo.weather }
+    private var timezone: String { response.destinationInfo.timezone }
+    private var itineraryOptions: [ItineraryOption] { response.itineraryOptions }
+    private var flights: [FlightOption] { response.flights }
+    private var hasKids: Bool { draft.travelerInfo.hasKids ?? false }
+
+    private var flightSummary: String {
+        guard let top = flights.min(by: { $0.rank < $1.rank }) else { return "" }
+        let hours = Int(top.duration)
+        let minutes = Int((top.duration - Float(hours)) * 60)
+        let stops = top.layovers.count
+        let stopText = stops == 0 ? "direct" : "\(stops) stop\(stops > 1 ? "s" : "")"
+        return "\(hours)h \(minutes)m (\(stopText))"
+    }
 
     var body: some View {
         ZStack {
@@ -33,9 +44,9 @@ struct ItinerariesView: View {
                 VStack(alignment: .leading, spacing: S.lg) {
                     destinationHeader
                     infoRow
-                    if hasKids {
-                        toddlerToggle
-                    }
+//                    if hasKids {
+//                        toddlerToggle
+//                    }
                     itineraryCards
                 }
                 .padding(.horizontal, S.md)
@@ -109,48 +120,54 @@ struct ItinerariesView: View {
         }
     }
 
-    // MARK: - Toddler Toggle
-
-    private var toddlerToggle: some View {
-        HStack(spacing: 12) {
-            Circle()
-                .fill(C.tipIcon.opacity(0.15))
-                .frame(width: 40, height: 40)
-                .overlay(
-                    Image(systemName: "figure.and.child.holdinghands")
-                        .font(.system(size: 16))
-                        .foregroundColor(C.tipIcon)
-                )
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Toddler-friendly mode")
-                    .font(T.bodyMedium)
-                    .foregroundColor(C.textPrimary)
-                Text("Naps, strollers, calm beaches, short walks")
-                    .font(T.captionMd)
-                    .foregroundColor(C.textSecondary)
-            }
-
-            Spacer()
-
-            Toggle("", isOn: $toddlerFriendly)
-                .labelsHidden()
-                .tint(C.tipIcon)
-        }
-        .padding(S.sm)
-        .background(C.cardBg)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radii.inner))
-    }
+//    // MARK: - Toddler Toggle
+//
+//    private var toddlerToggle: some View {
+//        HStack(spacing: 12) {
+//            Circle()
+//                .fill(C.tipIcon.opacity(0.15))
+//                .frame(width: 40, height: 40)
+//                .overlay(
+//                    Image(systemName: "figure.and.child.holdinghands")
+//                        .font(.system(size: 16))
+//                        .foregroundColor(C.tipIcon)
+//                )
+//
+//            VStack(alignment: .leading, spacing: 2) {
+//                Text("Toddler-friendly mode")
+//                    .font(T.bodyMedium)
+//                    .foregroundColor(C.textPrimary)
+//                Text("Naps, strollers, calm beaches, short walks")
+//                    .font(T.captionMd)
+//                    .foregroundColor(C.textSecondary)
+//            }
+//
+//            Spacer()
+//
+//            Toggle("", isOn: $toddlerFriendly)
+//                .labelsHidden()
+//                .tint(C.tipIcon)
+//        }
+//        .padding(S.sm)
+//        .background(C.cardBg)
+//        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radii.inner))
+//    }
 
     // MARK: - Itinerary Cards
 
     private var itineraryCards: some View {
         VStack(spacing: S.md) {
             ForEach(Array(itineraryOptions.enumerated()), id: \.element.optionNumber) { _, option in
-                itineraryCard(option)
-                    .onTapGesture {
-                        onSelectItinerary?(option)
-                    }
+                NavigationLink {
+                    ItineraryView(
+                        itinerary: option,
+                        flights: flights,
+                        destination: destination
+                    )
+                } label: {
+                    itineraryCard(option)
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -290,35 +307,37 @@ struct DiagonalStripePattern: View {
 
     let sampleHotelStops = [
         HotelStop(area: "Jardim da Estrela playground", nights: 4, hotels: [
-            HotelOption(name: "Casa Boma", area: "Príncipe Real", rating: 4.5, pricePerNight: 180, totalPrice: 4280, amenities: ["Pool", "Kitchen"], score: 98, reason: "Great for families", bookingUrl: nil)
+            HotelOption(name: "Casa Boma", type: "Apartment", area: "Príncipe Real", rating: 4.5, pricePerNight: 180, totalPrice: 4280, amenities: ["Pool", "Kitchen"], score: 98, reason: "Great for families", bookingUrl: nil)
         ]),
         HotelStop(area: "Tram 28 slow ride", nights: 3, hotels: [
-            HotelOption(name: "Hotel B", area: "Alfama", rating: 4.2, pricePerNight: 150, totalPrice: 3200, amenities: ["Breakfast"], score: 90, reason: "Central", bookingUrl: nil)
+            HotelOption(name: "Hotel B", type: "Boutique Hotel", area: "Alfama", rating: 4.2, pricePerNight: 150, totalPrice: 3200, amenities: ["Breakfast"], score: 90, reason: "Central", bookingUrl: nil)
         ]),
         HotelStop(area: "Cascais beach day", nights: 2, hotels: []),
     ]
 
-    let options = [
-        ItineraryOption(optionNumber: 1, style: "Slow Lisbon", description: "Lazy mornings, shaded parks, one activity per day. Toddler-tested.", days: sampleDays, hotelStops: sampleHotelStops),
-        ItineraryOption(optionNumber: 2, style: "Culture Deep-Dive", description: "Fado nights, tiled alleyways, pastéis de nata crawl across three neighborhoods.", days: sampleDays, hotelStops: sampleHotelStops),
-        ItineraryOption(optionNumber: 3, style: "Coastal Explorer", description: "Day trips to Sintra and Cascais, sunset at Cabo da Roca.", days: sampleDays, hotelStops: sampleHotelStops),
-    ]
+    let response = FinalTripResponse(
+        destinationInfo: DestinationInfo(country: "Portugal", tagline: "Seven tiled hills, sea-breeze mornings, custard-tart afternoons.", weather: "26° · Sunny", timezone: "GMT+1"),
+        flights: [
+            FlightOption(rank: 1, airline: "TAP", flightNumber: "TP 206", score: 9, origin: "SFO", destination: "LIS", reason: "Direct flight", price: 1180, duration: 11.3, layovers: ["JFK"], departureDate: "2026-07-12", departureTime: "18:30", returnDate: "2026-07-19", returnTime: "10:00", bookingUrl: nil, familyAmenities: ["Bassinet available"])
+        ],
+        itineraryOptions: [
+            ItineraryOption(optionNumber: 1, style: "Slow Lisbon", description: "Lazy mornings, shaded parks, one activity per day. Toddler-tested.", days: sampleDays, hotelStops: sampleHotelStops),
+            ItineraryOption(optionNumber: 2, style: "Culture Deep-Dive", description: "Fado nights, tiled alleyways, pastéis de nata crawl across three neighborhoods.", days: sampleDays, hotelStops: sampleHotelStops),
+            ItineraryOption(optionNumber: 3, style: "Coastal Explorer", description: "Day trips to Sintra and Cascais, sunset at Cabo da Roca.", days: sampleDays, hotelStops: sampleHotelStops),
+        ],
+        cannotGenerate: false,
+        reason: nil
+    )
 
-    let flights = [
-        FlightOption(rank: 1, airline: "TAP", score: 9, origin: "SFO", destination: "LIS", reason: "Direct flight", price: 1180, duration: 11.3, layovers: ["JFK"], departureDate: "2026-07-12", departureTime: "18:30", returnDate: "2026-07-19", returnTime: "10:00", bookingUrl: nil)
-    ]
+    let draft = TripRequestDraft(
+        route: Route(origin: "SFO", destination: "Lisbon"),
+        schedule: Schedule(),
+        travelerInfo: TravelerInfo(hasKids: true),
+        transportPreferences: TransportPreferences(flightSelected: true),
+        lodgingPreferences: LodgingPreferences(hotel: true)
+    )
 
     NavigationStack {
-        ItinerariesView(
-            destination: "Lisbon",
-            country: "Portugal",
-            tagline: "Seven tiled hills, sea-breeze mornings, custard-tart afternoons.",
-            weather: "26° · Sunny",
-            flightSummary: "11h 20m (1 stop)",
-            timezone: "GMT+1",
-            itineraryOptions: options,
-            flights: flights,
-            hasKids: true
-        )
+        ItinerariesView(response: response, draft: draft)
     }
 }

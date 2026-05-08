@@ -49,34 +49,6 @@ final class TripDraftViewModel : ObservableObject {
         }
     }
     
-    func submitFinalDraft() async {
-        do {
-            guard let draft = tripDraft else {
-                print("no draft found")
-                screen2State = .failed("No trip draft available.")
-                return
-            }
-            
-            screen2State = .submittingFinal
-            print("fetching itinerary")
-            
-            let tripResponse = try await fetchItinaray(from: draft)
-            
-            print("itinerary options", tripResponse.itineraryOptions.count)
-            screen2State = .finalResult(tripResponse)
-        } catch {
-            screen2State = .failed(error.localizedDescription)
-        }
-    }
-    
-    private func fetchItinaray(from draft: TripRequestDraft) async throws -> FinalTripResponse {
-        let response = try await apiService.submitFinalDraft(draft)
-        
-        print("response", response.itineraryOptions.count, "options")
-        
-        return response.self
-    }
-    
     private func fetchParsedPrompt(from prompt: String) async throws -> ParsedPromptResult {
         // Replace with your real API call
         let response = try await apiService.parseTripPrompt(prompt)

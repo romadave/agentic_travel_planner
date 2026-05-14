@@ -7,7 +7,7 @@
 #if targetEnvironment(simulator)
 private let baseURL = "http://127.0.0.1:8000"
 #else
-private let baseURL = "http://192.168.1.23:8000" // your Mac's IP
+private let baseURL = "https://agentic-travel-planner-8on8.onrender.com" // your Mac's IP
 #endif
 
 import Foundation

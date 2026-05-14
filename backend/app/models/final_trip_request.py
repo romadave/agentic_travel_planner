@@ -53,6 +53,7 @@ class ItineraryDraft(BaseModel):
 class FlightOption(BaseModel):
     rank: int
     airline: str
+    flightNumber: Optional[str] = None
     score: int                  # 1–10, Gemini-assigned
     origin: str
     destination: str
@@ -65,9 +66,11 @@ class FlightOption(BaseModel):
     returnDate: str
     returnTime: str
     bookingUrl: Optional[str] = None
+    familyAmenities: Optional[List[str]] = None
 
 class HotelOption(BaseModel):
     name: str
+    type: Optional[str] = None  # "Apartment", "Boutique Hotel", etc.
     area: str
     rating: float
     pricePerNight: float

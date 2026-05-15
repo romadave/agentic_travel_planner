@@ -15,6 +15,7 @@ struct StyledTextField: View {
     var icon: String? = nil
     var multiline: Bool = false
     var minHeight: CGFloat = 48
+    var isDisabled: Bool = false
 
     private typealias C = DesignTokens.Colors
     private typealias T = DesignTokens.Typography
@@ -53,6 +54,8 @@ struct StyledTextField: View {
                 }
             }
         }
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.5 : 1.0)
         .padding(.horizontal, 16)
         .padding(.vertical, multiline ? 4 : 0)
         .background(

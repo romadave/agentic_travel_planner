@@ -13,8 +13,20 @@ private let baseURL = "https://agentic-travel-planner-8on8.onrender.com" // your
 import Foundation
 
 final class TripAPIService {
+
+    private let jsonEncoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        encoder.dateEncodingStrategy = .formatted(formatter)
+        return encoder
+    }()
+
     
     func parseTripPrompt(_ prompt: String) async throws -> ParseTripPromptResponse {
+        print("base url", baseURL)
         let endPoint = baseURL + "/parse-trip-prompt"
         guard let url = URL(string: "\(endPoint)") else {
             print("bad URL ", endPoint)
@@ -31,7 +43,7 @@ final class TripAPIService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(requestBody)
+        request.httpBody = try jsonEncoder.encode(requestBody)
 
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -60,13 +72,18 @@ final class TripAPIService {
             throw URLError(.badURL)
         }
         
-        print("Submitting final draft to endpoint: \(endPoint)")
+        print("[API] Submitting final draft to endpoint: \(endPoint)")
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 300 // 5 minutes — backend orchestrates multiple agents
-        request.httpBody = try JSONEncoder().encode(draft)
+        request.timeoutInterval = 600 // 10 minutes — backend orchestrates multiple agents, Render cold starts are slow
+        let body = try jsonEncoder.encode(draft)
+        request.httpBody = body
+        
+        if let jsonString = String(data: body, encoding: .utf8) {
+            print("[API] Request body:\n\(jsonString)")
+        }
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -104,7 +121,7 @@ final class TripAPIService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 60
-        request.httpBody = try JSONEncoder().encode(payload)
+        request.httpBody = try jsonEncoder.encode(payload)
 
         let (data, response) = try await URLSession.shared.data(for: request)
 

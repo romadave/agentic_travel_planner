@@ -36,6 +36,16 @@ struct Screen1View: View {
                 .padding(.horizontal, S.md)
             }
         }
+        .navigationDestination(isPresented: $goToScreen2) {
+            FollowUpQuestionsView(viewModel: viewModel)
+        }
+        .onChange(of: goToScreen2) { _, isPresented in
+            if !isPresented {
+                // Only fires when user navigates *back* to Screen1
+                print("[Screen1] goToScreen2 became false — resetting state")
+                viewModel.screen2State = .idle
+            }
+        }
     }
 
     // MARK: - Main Card
@@ -119,7 +129,8 @@ struct Screen1View: View {
                     text: $viewModel.userPrompt,
                     hint: "I want to go to...",
                     multiline: true,
-                    minHeight: 60
+                    minHeight: 60,
+                    isDisabled: goToScreen2
                 )
 
                 if showError {
@@ -146,13 +157,18 @@ struct Screen1View: View {
 
                     PrimaryButton(
                         action: {
+                            print("[Screen1] 🔘 Start Planning tapped")
                             guard viewModel.validatePrompt() else {
+                                print("[Screen1] ❌ Validation failed — prompt is empty")
                                 showError = true
                                 return
                             }
+                            print("[Screen1] ✅ Prompt validated: \(viewModel.userPrompt)")
                             showError = false
                             viewModel.screen2State = .loading
+                            print("[Screen1] screen2State -> .loading")
                             goToScreen2 = true
+                            print("[Screen1] goToScreen2 -> true (navigation should fire)")
                             Task {
                                 await viewModel.submitPrompt()
                             }
@@ -173,11 +189,7 @@ struct Screen1View: View {
                     .fill(C.inputBg)
             )
 
-            // Navigation trigger
-            EmptyView()
-                .navigationDestination(isPresented: $goToScreen2) {
-                    FollowUpQuestionsView(viewModel: viewModel)
-                }
+
         }
     }
 

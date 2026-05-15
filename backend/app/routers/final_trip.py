@@ -1,12 +1,22 @@
-from fastapi import APIRouter, HTTPException
-from app.models.final_trip_request import FinalTripRequest, FinalTripResponse
+import json
+from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
+from app.models.final_trip_request import FinalTripRequest
 from app.agents.trip_planner_agent import plan_trip
 
 router = APIRouter()
 
-@router.post("/finalTripRequest", response_model=FinalTripResponse)
-async def final_trip_request(request: FinalTripRequest) -> FinalTripResponse:
+async def event_stream(request: FinalTripRequest):
     try:
-        return await plan_trip(request)
+        async for chunk in plan_trip(request):
+            yield f"data: {chunk}\n\n"
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+@router.post("/finalTripRequest")
+async def final_trip_request(request: FinalTripRequest):
+    return StreamingResponse(
+        event_stream(request),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

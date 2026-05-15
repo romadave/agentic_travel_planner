@@ -189,3 +189,20 @@ mini-collection of our endpoints
 # schemas
 # agents
 # ASGI server
+
+
+# Server Side Events:
+What is Server-Side Streaming (SSE)?                  
+Right now your endpoint does all the work, then sends one big response. Streaming (specifically Server-Sent Events / SSE) lets the server push data to the client in chunks over a single HTTP connection as each piece becomes ready — the client doesn't wait.                                                                                                                                                                              
+
+Think of it like a restaurant: currently you wait 30 minutes for all three courses to be plated at once. Streaming means the appetizer comes out as soon as it's ready, then the main, then dessert.                   
+                                                       
+# Key Concepts to Know Before You Start                              
+async def vs async def with yield: When Python sees a yield inside an async def, it becomes an async generator. Instead of calling result = await plan_trip(request), the router iterates it: async for chunk in plan_trip (request).      
+
+StreamingResponse in FastAPI: Takes a generator and media_type="text/event-stream". FastAPI handles pushing each yielded value to the client as it's produced.                                                         
+                                                                                                                                                                                                                       
+# SSE format rules:                        
+  - Each message: data: <your JSON string>\n\n (exactly two newlines at the end)                                                                                                                                       
+  - The \n\n is what tells the browser "this event is complete, process it"                                                                                                                                              
+   

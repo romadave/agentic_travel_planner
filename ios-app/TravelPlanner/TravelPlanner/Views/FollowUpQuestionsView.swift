@@ -15,8 +15,8 @@ struct FollowUpQuestionsView: View {
     @State private var departureDate: Date = .now
     @State private var returnDate: Date = .now
     @State private var adultCount: Int = 2
-    @State private var childCount: Int = 0
-    @State private var childAge: Int = 3
+    @State private var travelingWithKids: Bool = false
+    @State private var youngestAge: Int = 3
     @State private var flightSelected = false
     @State private var roadSelected = false
     @State private var trainSelected = false
@@ -38,17 +38,20 @@ struct FollowUpQuestionsView: View {
                 Text("Ready to plan your trip.")
                     .font(T.body)
                     .foregroundColor(C.textSecondary)
+                    .onAppear { print("[FollowUp] 👁️ Rendering .idle state") }
 
             case .loading:
-                VStack(spacing: S.sm) {
-                    ProgressView()
-                    Text("Analyzing your trip request...")
-                        .font(T.body)
-                        .foregroundColor(C.textSecondary)
-                }
+                OrbitLoadingView(
+                    topLabel: "ANALYZING...",
+                    headline: "Reading",
+                    subheadline: "your adventure.",
+                    steps: buildAnalyzingSteps(from: viewModel.userPrompt)
+                )
+                .onAppear { print("[FollowUp] ⏳ Rendering .loading state") }
 
             case .loaded(let evaluation):
                 loadedView(evaluation: evaluation)
+                    .onAppear { print("[FollowUp] ✅ Rendering .loaded — missing: \(evaluation.missingRequirements.count), ready: \(evaluation.isReadyForSubmission)") }
 
             case .failed(let errorMessage):
                 VStack(alignment: .leading, spacing: 12) {
@@ -71,6 +74,7 @@ struct FollowUpQuestionsView: View {
                 .padding(.horizontal, S.md)
             }
         }
+        .onAppear { print("[FollowUp] 📍 FollowUpQuestionsView appeared — screen2State: \(viewModel.screen2State)") }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(isPresented: $navigateToPlanning) {
@@ -258,22 +262,58 @@ struct FollowUpQuestionsView: View {
             }
 
         case .travelDates:
-            VStack(alignment: .leading, spacing: 12) {
-                DatePicker("", selection: $departureDate, in: Date()..., displayedComponents: .date)
-                    .datePickerStyle(.graphical)
-                    .tint(C.buttonPrimary)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: R.inner, style: .continuous)
-                            .fill(Color.white)
-                    )
+            VStack(alignment: .leading, spacing: 16) {
+                // Departure date
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Departure")
+                        .font(T.label)
+                        .foregroundColor(C.accentTan)
+                        .tracking(0.5)
+                    DatePicker("", selection: $departureDate, in: Date()..., displayedComponents: .date)
+                        .datePickerStyle(.compact)
+                        .tint(C.buttonPrimary)
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: R.inner, style: .continuous)
+                                .fill(Color.white)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: R.inner, style: .continuous)
+                                .stroke(C.patternLine, lineWidth: 1)
+                        )
+                }
+
+                Text("to")
+                    .font(T.body)
+                    .foregroundColor(C.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                // Return date
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Return")
+                        .font(T.label)
+                        .foregroundColor(C.accentTan)
+                        .tracking(0.5)
+                    DatePicker("", selection: $returnDate, in: departureDate..., displayedComponents: .date)
+                        .datePickerStyle(.compact)
+                        .tint(C.buttonPrimary)
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: R.inner, style: .continuous)
+                                .fill(Color.white)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: R.inner, style: .continuous)
+                                .stroke(C.patternLine, lineWidth: 1)
+                        )
+                }
             }
 
         case .travelerCount, .hasKids, .youngestTravelerAge:
             VStack(spacing: 0) {
                 StepperRow(
-                    label: "Adults",
-                    subtitle: "13+ years",
+                    label: "Travelers",
+                    subtitle: "Total number of people",
                     icon: "person.crop.circle",
                     value: $adultCount,
                     range: 1...20
@@ -282,14 +322,36 @@ struct FollowUpQuestionsView: View {
 
                 Divider()
 
-                StepperRow(
-                    label: "Toddler",
-                    subtitle: "\(childAge) years",
-                    icon: "person.crop.circle",
-                    value: $childCount,
-                    range: 0...10
-                )
+                // Kids toggle
+                HStack {
+                    Image(systemName: "figure.and.child.holdinghands")
+                        .font(.system(size: 18))
+                        .foregroundColor(C.accentTan)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Traveling with kids?")
+                            .font(T.bodyMedium)
+                            .foregroundColor(C.textPrimary)
+                    }
+                    Spacer()
+                    Toggle("", isOn: $travelingWithKids)
+                        .labelsHidden()
+                        .tint(C.buttonPrimary)
+                }
                 .padding(.vertical, 14)
+
+                // Youngest age — only if traveling with kids
+                if travelingWithKids {
+                    Divider()
+
+                    StepperRow(
+                        label: "Youngest traveler age",
+                        subtitle: "\(youngestAge) years old",
+                        icon: "birthday.cake",
+                        value: $youngestAge,
+                        range: 0...17
+                    )
+                    .padding(.vertical, 14)
+                }
             }
             .padding(.horizontal, S.sm)
             .background(
@@ -300,6 +362,7 @@ struct FollowUpQuestionsView: View {
                 RoundedRectangle(cornerRadius: R.inner, style: .continuous)
                     .stroke(C.patternLine, lineWidth: 1)
             )
+            .animation(.easeInOut(duration: 0.25), value: travelingWithKids)
 
         case .transportMode:
             FlowLayout(spacing: 10) {
@@ -320,7 +383,7 @@ struct FollowUpQuestionsView: View {
 
     @ViewBuilder
     private func bottomButton(questions: [TripRequirement], safeIndex: Int, isLastStep: Bool) -> some View {
-        let buttonTitle = isLastStep || questions.isEmpty ? "Build my itineraries" : "Continue"
+        let buttonTitle = isLastStep || questions.isEmpty ? "Build my itineraries" : "Next"
         PrimaryButton(
             action: {
                 advanceOrSubmit(questions: questions, safeIndex: safeIndex, skipPersist: false)
@@ -352,22 +415,23 @@ struct FollowUpQuestionsView: View {
     }
 
     private func advanceOrSubmit(questions: [TripRequirement], safeIndex: Int, skipPersist: Bool) {
-        let isLastStep = !questions.isEmpty && safeIndex == questions.count - 1
-
         if !skipPersist && !questions.isEmpty {
             persistAnswer(for: questions[safeIndex])
         }
 
         viewModel.reevaluateDraft()
 
-        if isLastStep || questions.isEmpty {
-            if viewModel.evaluation?.isReadyForSubmission == true {
-                navigateToPlanning = true
-            }
-        } else {
+        // After re-evaluation, check if we're actually done
+        if viewModel.evaluation?.isReadyForSubmission == true {
+            navigateToPlanning = true
+            return
+        }
+
+        // Not done — advance to the next missing question
+        let newQuestions = viewModel.evaluation?.missingRequirements ?? []
+        if !newQuestions.isEmpty {
             withAnimation {
-                let newCount = viewModel.evaluation?.missingRequirements.count ?? questions.count
-                currentIndex = min(safeIndex + 1, max(0, newCount - 1))
+                currentIndex = 0
                 resetAnswerState()
             }
         }
@@ -384,10 +448,10 @@ struct FollowUpQuestionsView: View {
         case .travelDates:
             viewModel.updateTravelDates(departure: departureDate, returnDate: returnDate)
         case .travelerCount, .hasKids, .youngestTravelerAge:
-            viewModel.updateTravelerCount(adultCount + childCount)
-            viewModel.updateHasKids(childCount > 0)
-            if childCount > 0 {
-                viewModel.updateYoungestTravelerAge(childAge)
+            viewModel.updateTravelerCount(adultCount)
+            viewModel.updateHasKids(travelingWithKids)
+            if travelingWithKids {
+                viewModel.updateYoungestTravelerAge(youngestAge)
             }
         case .transportMode:
             viewModel.setTransportModes(flight: flightSelected, road: roadSelected, train: trainSelected)
@@ -400,8 +464,8 @@ struct FollowUpQuestionsView: View {
     private func resetAnswerState() {
         textAnswer = ""
         adultCount = 2
-        childCount = 0
-        childAge = 3
+        travelingWithKids = false
+        youngestAge = 3
         flightSelected = false
         roadSelected = false
         trainSelected = false
@@ -437,6 +501,37 @@ struct FollowUpQuestionsView: View {
         case .lodgingPreferences:
             return "Pick any that feel right."
         }
+    }
+
+    // MARK: - Analyzing steps (personalized from prompt)
+
+    private func buildAnalyzingSteps(from prompt: String) -> [String] {
+        let destination = extractDestination(from: prompt)
+
+        var steps = ["Understanding your request..."]
+
+        if let dest = destination {
+            steps.append("Packing our bags for \(dest)...")
+        } else {
+            steps.append("Sounds like a fun getaway!")
+        }
+
+        steps.append("Picking out the best spots...")
+        steps.append("Almost ready...")
+
+        return steps
+    }
+
+    /// Simple client-side extraction: looks for a capitalized word
+    /// after common travel prepositions (to, in, from).
+    private func extractDestination(from prompt: String) -> String? {
+        let pattern = #"(?:to|in|from)\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: prompt, range: NSRange(prompt.startIndex..., in: prompt)),
+              let range = Range(match.range(at: 1), in: prompt) else {
+            return nil
+        }
+        return String(prompt[range])
     }
 
 }

@@ -27,25 +27,29 @@ final class TripDraftViewModel : ObservableObject {
     
     func submitPrompt() async {
         screen2State = .loading
-        print("Loading now")
+        print("[ViewModel] submitPrompt() called — state -> .loading")
         do {
-            print("sending" ,userPrompt)
+            print("[ViewModel] Sending prompt to API: \(userPrompt)")
             // send the user prompt to LLM
             let parsed = try await fetchParsedPrompt(from: userPrompt)
+            print("[ViewModel] ✅ API response received, building draft...")
             
             // build the draft from parsed response
             let draft = draftBuilder.build(from: parsed)
             self.tripDraft = draft
-            print("DRAFT : ", tripDraft)
+            print("[ViewModel] Draft built: \(String(describing: tripDraft))")
             
             // evaluate the result and find missing questions
             let evaluateResult = evaluator.evaluate(draft: draft)
             self.evaluation = evaluateResult
-            print("RESULT" , evaluateResult.self)
+            print("[ViewModel] Evaluation complete — missing: \(evaluateResult.missingRequirements), ready: \(evaluateResult.isReadyForSubmission)")
             screen2State = .loaded(evaluateResult)
+            print("[ViewModel] state -> .loaded")
             
         } catch {
+            print("[ViewModel] ❌ submitPrompt failed: \(error)")
             screen2State = .failed(error.localizedDescription)
+            print("[ViewModel] state -> .failed")
         }
     }
     

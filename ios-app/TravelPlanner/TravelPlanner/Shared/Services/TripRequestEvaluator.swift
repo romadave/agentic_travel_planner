@@ -35,17 +35,12 @@ struct TripRequestEvaluator {
         }
 
         let travelerCount = draft.travelerInfo.travelerCount ?? 0
-        if travelerCount <= 0 {
-            missing.append(.travelerCount)
-        }
-
         let hasKidsValue = draft.travelerInfo.hasKids
-        if hasKidsValue == nil {
-            missing.append(.hasKids)
-        }
-
-        if (hasKidsValue ?? false) && draft.travelerInfo.youngestTravelerAge == nil {
-            missing.append(.youngestTravelerAge)
+        // Combine travelerCount, hasKids, and youngestTravelerAge into a single step
+        if travelerCount <= 0 || hasKidsValue == nil {
+            missing.append(.travelerCount)
+        } else if hasKidsValue == true && draft.travelerInfo.youngestTravelerAge == nil {
+            missing.append(.travelerCount)
         }
 
         let flightSelected = draft.transportPreferences.flightSelected ?? false

@@ -33,3 +33,4 @@ Why SwiftUI uses struct for views?
 #@StateObject
 #@escaping
 #@ViewBuilder
+#onChange(of:) - A SwiftUI view modifier that acts as a value change listener. It watches a specific value and runs a closure whenever that value changes. Similar to an event listener or value notifier. Signature: `.onChange(of: someValue) { oldValue, newValue in ... }`. Useful when you need to react to state changes but can't (or shouldn't) put that logic directly in a property setter. Unlike `.onAppear` (runs once when view appears) or `.onDisappear` (runs when view leaves), `onChange` fires every time the watched value changes, regardless of view lifecycle.

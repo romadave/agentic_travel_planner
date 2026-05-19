@@ -104,6 +104,96 @@ final class TripAPIService {
         
         return try JSONDecoder().decode(FinalTripResponse.self, from: data)
     }
+    
+    func streamFinalDraft(_ draft: TripRequestDraft) -> AsyncThrowingStream<TripStreamEvent, Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                do {
+                    // 1. Build the URLRequest (same as submitFinalDraft — POST, JSON body, etc.)
+                    //    BUT: add a header to tell the server we accept SSE
+                    //    request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+                    let endPoint = baseURL + "/finalTripRequest"
+                    guard let url = URL(string: endPoint) else {
+                        print("bad URL ", endPoint)
+                        throw URLError(.badURL)
+                    }
+                    
+                    print("[API] Submitting final draft to endpoint: \(endPoint)")
+                    
+                    var request = URLRequest(url: url)
+                    request.httpMethod = "POST"
+                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+                    request.timeoutInterval = 600 // 10 minutes — backend orchestrates multiple agents, Render cold starts are slow
+                    let body = try jsonEncoder.encode(draft)
+                    request.httpBody = body
+                    
+                    if let jsonString = String(data: body, encoding: .utf8) {
+                        print("[API] Request body:\n\(jsonString)")
+                    }
+                    
+                    // 2. Use bytes(for:) instead of data(for:)
+                    //    let (bytes, response) = try await URLSession.shared.bytes(for: request)
+                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
+                    
+                    print("Got response back")
+
+                    // 3. Check the HTTP status code
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        print("bad server response")
+                        throw URLError(.badServerResponse)
+                    }
+                    
+                    guard 200..<300 ~= httpResponse.statusCode else {
+                        // bytes is a stream, not Data — collect it first
+                        var errorData = Data()
+                        for try await byte in bytes {
+                            errorData.append(byte)
+                        }
+                        let serverMessage = String(data: errorData, encoding: .utf8) ?? "Unknown server error"
+                        print("Server error ", serverMessage)
+                        throw NSError(domain: "TripAPIService", code: httpResponse.statusCode, userInfo: [
+                            NSLocalizedDescriptionKey: serverMessage
+                        ])
+                    }
+
+                    // 4. Loop over bytes.lines
+                    //    for try await line in bytes.lines {
+                    //        - Skip empty lines (SSE blank line separators)
+                    //        - Strip the "data: " prefix
+                    //        - Convert the remaining string to Data
+                    //        - Call TripStreamEvent.decode(from: data)
+                    //        - yield it: continuation.yield(event)
+                    //    }
+                    
+                    let prefix = "data: "
+                    for try  await line in bytes.lines {
+                        if line.count == 0 || line.isEmpty {
+                            continue
+                        }
+                        
+                        let jsonString = line.hasPrefix(prefix) ? String(line.dropFirst(prefix.count)) : line
+                        
+                        guard let jsonData = jsonString.data(using: .utf8) else { continue }
+                        
+                        let event = try TripStreamEvent.decode(from: jsonData)
+                        
+                        continuation.yield(event)
+                    }
+                    
+                    // 5. When the loop ends, finish the stream
+                    //    continuation.finish()
+                    continuation.finish()
+
+                    
+                } catch {
+                    // 6. If anything throws, finish with the error
+                    //    continuation.finish(throwing: error)
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
 
     func shareItinerary(email: String, itinerary: ItineraryOption, flights: [FlightOption]) async throws {
         let endPoint = baseURL + "/share-itinerary"

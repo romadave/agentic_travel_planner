@@ -24,6 +24,12 @@ class FinalTripRequest(BaseModel):
 
 # ── /finalTripRequest — Output models ────────────────────────────────
 
+class DestinationInfo(BaseModel):
+    country: str
+    tagline: str
+    weather: str
+    timezone: str
+
 class PartOfDay(BaseModel):
     activity: Optional[str] = None
     place: Optional[str] = None

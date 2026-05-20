@@ -14,8 +14,8 @@ def _parse_time(datetime_str: str) -> tuple[str, str]:
 async def _resolve_airport_code(location: str) -> str:
     raw = gemini_client.generate_text(
         model="gemini-flash-latest",
-        user_prompt=f"What is the main IATA airport code for: {location}? Reply with the 3-letter code only. Example: SFO",
-        system_prompt="You are an airport code lookup tool. Return only the 3-letter IATA code, nothing else.",
+        user_prompt=f"What is the nearest major commercial IATA airport code for traveling to or from: {location}? Reply with the 3-letter code only. Example: SFO",
+        system_prompt="You are an airport code lookup tool. Return only the 3-letter IATA code, nothing else. No explanation.",
     )
     return raw.strip().upper()[:3]
 
@@ -63,10 +63,11 @@ def _extract_flights(raw: dict) -> list[dict]:
     return results
 
 async def fetch_flights(request: FinalTripRequest) -> list[dict]:
-    origin = await _resolve_airport_code(request.route.originText or "")
-    destination = await _resolve_airport_code(request.route.destinationText or "")
-    departure = request.schedule.departureDateText or ""
-    returning = request.schedule.returnDateText or ""
+    origin = await _resolve_airport_code(request.route.origin or "")
+    # Use the pre-resolved gateway airport if available — avoids a redundant Gemini call
+    destination = request.route.gatewayAirport or await _resolve_airport_code(request.route.destination or "")
+    departure = request.schedule.departureDate or ""
+    returning = request.schedule.returnDate or ""
     adults = request.travelerInfo.travelerCount or 1
     children = 1 if request.travelerInfo.hasKids else 0
 

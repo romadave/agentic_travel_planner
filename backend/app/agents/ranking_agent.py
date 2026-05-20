@@ -102,7 +102,7 @@ async def rank_flights(
   ) -> list[FlightOption]:                                                                                                                                                                                             
       user_prompt = f"""
       Family trip: {request.travelerInfo.travelerCount} travelers, youngest is {request.travelerInfo.youngestTravelerAge} years old.
-      Origin: {request.route.originText}, Destination: {request.route.destinationText}                                                                                                                                       
+      Origin: {request.route.origin}, Destination: {request.route.resolvedDestination or request.route.destination}
       Layovers allowed: {request.transportPreferences.layoversAllowed}                                                                                                                                                       
       Budget flight preferred: {request.transportPreferences.budgetFlight}                                                                                                                                               
       
@@ -139,7 +139,7 @@ async def rank_hotels(
    
       user_prompt = f"""                                                                                                                                                                                                 
       Family trip: {request.travelerInfo.travelerCount} travelers, youngest is {request.travelerInfo.youngestTravelerAge} years old.                                                                                       
-      Destination: {request.route.destinationText}
+      Destination: {request.route.resolvedDestination or request.route.destination}
       
       ITINERARY OPTIONS WITH HOTELS TO RANK:
       {json.dumps(options_with_hotels, indent=2)}                                                                                                                                                                            

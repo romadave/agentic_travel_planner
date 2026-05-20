@@ -6,12 +6,14 @@ from app.models.prompt_response import TravelerInfo, TransportPreferences, Lodgi
 # Mirrors TripRequestDraft from iOS
 
 class Route(BaseModel):
-    originText: Optional[str] = None
-    destinationText: Optional[str] = None
+    origin: Optional[str] = None
+    destination: Optional[str] = None
+    resolvedDestination: Optional[str] = None  # normalized city/region after AI lookup
+    gatewayAirport: Optional[str] = None        # IATA code of nearest major airport
 
 class Schedule(BaseModel):
-    departureDateText: Optional[str] = None
-    returnDateText: Optional[str] = None
+    departureDate: Optional[str] = None
+    returnDate: Optional[str] = None
     numberOfDays: Optional[int] = None
 
 class FinalTripRequest(BaseModel):

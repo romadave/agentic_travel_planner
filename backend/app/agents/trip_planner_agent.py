@@ -1,6 +1,7 @@
 import asyncio
 import json
 from typing import AsyncGenerator
+from app.agents.destination_resolver import resolve_destination
 from app.agents.itinerary_agent import generate_itinerary_options
 from app.agents.destination_agent import generate_destination_info
 from app.agents.flight_agent import fetch_flights
@@ -9,6 +10,13 @@ from app.agents.ranking_agent import rank_flights, rank_hotels
 from app.models.final_trip_request import FinalTripRequest
 
 async def plan_trip(request: FinalTripRequest) -> AsyncGenerator[str, None]:
+    # Step 0: Normalize destination before anything else runs.
+    # "Banff National Park" → resolvedDestination="Banff, Alberta, Canada", gatewayAirport="YYC"
+    # "Eiffel Tower" → resolvedDestination="Paris, France", gatewayAirport="CDG"
+    resolved = await resolve_destination(request.route.destination or "")
+    request.route.resolvedDestination = resolved.get("resolvedDestination") or request.route.destination
+    request.route.gatewayAirport = resolved.get("gatewayAirport") or ""
+
     # Step 1: destination info + itineraries run in parallel (independent)
     destination_task = asyncio.create_task(generate_destination_info(request))
     itinerary_task = asyncio.create_task(generate_itinerary_options(request))

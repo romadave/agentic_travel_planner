@@ -49,11 +49,20 @@ JSON schema:
 """
 
 def _build_user_prompt(request: FinalTripRequest) -> str:
-    origin = request.route.originText or "unknown origin"
-    destination = request.route.destinationText or "unknown destination"
-    departure = request.schedule.departureDateText or "TBD"
-    returning = request.schedule.returnDateText or "TBD"
-    num_days = request.schedule.numberOfDays or 7
+    from datetime import date
+    origin = request.route.origin or "unknown origin"
+    destination = request.route.resolvedDestination or request.route.destination or "unknown destination"
+    departure = request.schedule.departureDate or "TBD"
+    returning = request.schedule.returnDate or "TBD"
+
+    if request.schedule.numberOfDays:
+        num_days = request.schedule.numberOfDays
+    elif request.schedule.departureDate and request.schedule.returnDate:
+        dep = date.fromisoformat(request.schedule.departureDate)
+        ret = date.fromisoformat(request.schedule.returnDate)
+        num_days = (ret - dep).days
+    else:
+        num_days = 7
     traveler_count = request.travelerInfo.travelerCount or 2
     youngest_age = request.travelerInfo.youngestTravelerAge
     has_kids = request.travelerInfo.hasKids

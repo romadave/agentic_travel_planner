@@ -26,8 +26,8 @@ JSON schema:
 """
 
 async def generate_destination_info(request: FinalTripRequest) -> DestinationInfo:
-    destination = request.route.destinationText or "Unknown destination"
-    departure = request.schedule.departureDateText or "Unknown date"
+    destination = request.route.resolvedDestination or request.route.destination or "Unknown destination"
+    departure = request.schedule.departureDate or "Unknown date"
 
     user_prompt = f"""
 Destination: {destination}

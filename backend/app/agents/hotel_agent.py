@@ -33,8 +33,8 @@ def _extract_hotels(raw: dict, area: str) -> list[dict]:
 async def _search_area(area: str, request: FinalTripRequest) -> tuple[str, list[dict]]:
     adults = request.travelerInfo.travelerCount or 1
     children = 1 if request.travelerInfo.hasKids else 0
-    check_in = request.schedule.departureDateText or ""
-    check_out = request.schedule.returnDateText or ""
+    check_in = request.schedule.departureDate or ""
+    check_out = request.schedule.returnDate or ""
 
     raw = await serp_client.search_hotels(
         location=area,

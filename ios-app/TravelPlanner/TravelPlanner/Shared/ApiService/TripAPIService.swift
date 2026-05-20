@@ -167,18 +167,28 @@ final class TripAPIService {
                     //    }
                     
                     let prefix = "data: "
-                    for try  await line in bytes.lines {
-                        if line.count == 0 || line.isEmpty {
-                            continue
-                        }
+                    for try await line in bytes.lines {
+                        if line.isEmpty { continue }
+                        
+                        print("[SSE] Raw line: \(line)")
                         
                         let jsonString = line.hasPrefix(prefix) ? String(line.dropFirst(prefix.count)) : line
                         
-                        guard let jsonData = jsonString.data(using: .utf8) else { continue }
+                        guard let jsonData = jsonString.data(using: .utf8) else {
+                            print("[SSE] Could not convert to Data: \(jsonString)")
+                            continue
+                        }
                         
-                        let event = try TripStreamEvent.decode(from: jsonData)
-                        
-                        continuation.yield(event)
+                        do {
+                            let event = try TripStreamEvent.decode(from: jsonData)
+                            print("[SSE] Decoded event successfully")
+                            continuation.yield(event)
+                        } catch {
+                            print("[SSE] Decode error: \(error)")
+                            print("[SSE] JSON was: \(jsonString)")
+                            // Continue to next line instead of killing the whole stream
+                            continue
+                        }
                     }
                     
                     // 5. When the loop ends, finish the stream

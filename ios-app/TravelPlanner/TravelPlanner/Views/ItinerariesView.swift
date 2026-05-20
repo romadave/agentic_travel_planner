@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct ItinerariesView: View {
-    let response: FinalTripResponse
+    @ObservedObject var resultVM: TripResultViewModel
     let draft: TripRequestDraft
 
     private typealias C = DesignTokens.Colors
@@ -19,12 +19,12 @@ struct ItinerariesView: View {
     // MARK: - Derived properties
 
     private var destination: String { draft.route.destination }
-    private var country: String { response.destinationInfo.country }
-    private var tagline: String { response.destinationInfo.tagline }
-    private var weather: String { response.destinationInfo.weather }
-    private var timezone: String { response.destinationInfo.timezone }
-    private var itineraryOptions: [ItineraryOption] { response.itineraryOptions }
-    private var flights: [FlightOption] { response.flights }
+    private var country: String { resultVM.destinationInfo?.country ?? ""}
+    private var tagline: String { resultVM.destinationInfo?.tagline  ?? ""}
+    private var weather: String { resultVM.destinationInfo?.weather ?? "" }
+    private var timezone: String { resultVM.destinationInfo?.timezone ?? "" }
+    private var itineraryOptions: [ItineraryOption] { resultVM.itineraryOptions }
+    private var flights: [FlightOption] { resultVM.flights }
     private var hasKids: Bool { draft.travelerInfo.hasKids ?? false }
 
     private var flightSummary: String {
@@ -338,7 +338,17 @@ struct DiagonalStripePattern: View {
         lodgingPreferences: LodgingPreferences(hotel: true)
     )
 
+    let vm: TripResultViewModel = {
+        let v = TripResultViewModel()
+        v.destinationInfo = response.destinationInfo
+        v.itineraryOptions = response.itineraryOptions
+        v.flights = response.flights
+        v.isLoadingFlights = false
+        v.isLoadingHotels = false
+        return v
+    }()
+
     NavigationStack {
-        ItinerariesView(response: response, draft: draft)
+        ItinerariesView(resultVM: vm, draft: draft)
     }
 }

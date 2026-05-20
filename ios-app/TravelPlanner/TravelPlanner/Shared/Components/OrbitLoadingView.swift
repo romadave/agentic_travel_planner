@@ -17,9 +17,15 @@ struct OrbitLoadingView: View {
     private typealias T = DesignTokens.Typography
     private typealias S = DesignTokens.Spacing
 
-    @State private var currentStepIndex: Int = 0
     @State private var orbitAngle: Double = 0
     @State private var pulseScale: Double = 1.0
+    
+    var externalStepIndex: Binding<Int>? // external step count
+    @State private var internalStepIndex: Int = 0  // fallback timer
+    
+    private var activeStepIndex: Int {
+        externalStepIndex?.wrappedValue ?? internalStepIndex
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -49,7 +55,9 @@ struct OrbitLoadingView: View {
         }
         .onAppear {
             startOrbitAnimation()
-            startStepProgression()
+            if externalStepIndex == nil {
+                startStepProgression()
+            }
         }
     }
 
@@ -113,18 +121,18 @@ struct OrbitLoadingView: View {
                         .foregroundColor(stepTextColor(for: index))
                 }
                 .opacity(stepOpacity(for: index))
-                .animation(.easeInOut(duration: 0.4), value: currentStepIndex)
+                .animation(.easeInOut(duration: 0.4), value: activeStepIndex)
             }
         }
     }
 
     @ViewBuilder
     private func stepIndicator(for index: Int) -> some View {
-        if index < currentStepIndex {
+        if index < activeStepIndex {
             Image(systemName: "checkmark")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(C.tipIcon)
-        } else if index == currentStepIndex {
+        } else if index == activeStepIndex {
             Circle()
                 .fill(C.textPrimary)
                 .frame(width: 8, height: 8)
@@ -136,12 +144,12 @@ struct OrbitLoadingView: View {
     }
 
     private func stepTextColor(for index: Int) -> Color {
-        index <= currentStepIndex ? C.textPrimary : C.textSecondary.opacity(0.5)
+        index <= activeStepIndex ? C.textPrimary : C.textSecondary.opacity(0.5)
     }
 
     private func stepOpacity(for index: Int) -> Double {
-        if index <= currentStepIndex { return 1.0 }
-        if index == currentStepIndex + 1 { return 0.5 }
+        if index <= activeStepIndex { return 1.0 }
+        if index == activeStepIndex + 1 { return 0.5 }
         return 0.3
     }
 
@@ -160,7 +168,7 @@ struct OrbitLoadingView: View {
         for i in 1..<steps.count {
             DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 2.0) {
                 withAnimation(.easeInOut(duration: 0.4)) {
-                    currentStepIndex = i
+                    internalStepIndex = i
                 }
             }
         }

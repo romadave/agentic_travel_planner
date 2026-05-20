@@ -12,8 +12,13 @@ struct PlanningLoadingView: View {
     private typealias T = DesignTokens.Typography
     private typealias S = DesignTokens.Spacing
 
-    @State private var tripResponse: FinalTripResponse? = nil
     @State private var errorMessage: String? = nil
+    @State private var itinerariesReceived: Bool = false
+    
+    // maintaining state in the parent widget
+    @State private var currentStepIndex: Int = 0
+    
+    @StateObject private var tripResultViewModel : TripResultViewModel = TripResultViewModel()
 
     private let apiService = TripAPIService()
 
@@ -28,19 +33,15 @@ struct PlanningLoadingView: View {
                     topLabel: "PLANNING...",
                     headline: "Dreaming up",
                     subheadline: "your \(seasonWord).",
-                    steps: buildSteps(from: draft)
+                    steps: buildSteps(from: draft),
+                    externalStepIndex: $currentStepIndex // passing down the state and is used as binding
                 )
             }
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .navigationDestination(isPresented: Binding(
-            get: { tripResponse != nil },
-            set: { if !$0 { tripResponse = nil } }
-        )) {
-            if let response = tripResponse {
-                ItinerariesView(response: response, draft: draft)
-            }
+        .navigationDestination(isPresented: $itinerariesReceived) {
+            ItinerariesView(resultVM: tripResultViewModel, draft: draft)
         }
         .onAppear {
             fetchTrip()
@@ -92,9 +93,44 @@ struct PlanningLoadingView: View {
     private func fetchTrip() {
         Task {
             do {
-                let response = try await apiService.submitFinalDraft(draft)
-                tripResponse = response
+                let response = apiService.streamFinalDraft(draft)
+                for try await event in response {
+                    switch event {
+                    case .destinationInfo(let info):
+                        print("[Stream] Got destinationInfo: \(info.country)")
+                        tripResultViewModel.destinationInfo = info
+                        currentStepIndex += 1
+                        
+                    case .itineraries(let options):
+                        print("[Stream] Got \(options.count) itineraries")
+                        tripResultViewModel.itineraryOptions = options
+                        currentStepIndex += 1
+                        itinerariesReceived = true
+                        
+                    case .flights(let flightOptions):
+                        print("[Stream] Got \(flightOptions.count) flights")
+                        tripResultViewModel.flights = flightOptions
+                        currentStepIndex += 1
+                        tripResultViewModel.isLoadingFlights = false
+                        
+                    case .hotels(let options):
+                        print("[Stream] Got hotels for \(options.count) itineraries")
+                        tripResultViewModel.itineraryOptions = options
+                        currentStepIndex += 1
+                        tripResultViewModel.isLoadingHotels = false
+                    
+                    case .done:
+                        print("[Stream] Done")
+                        break
+                    
+                    case .error(let error):
+                        print("[Stream] Server error: \(error)")
+                        errorMessage = error
+                    }
+                }
+                print("[Stream] Stream ended normally")
             } catch {
+                print("[Stream] Stream threw error: \(error)")
                 errorMessage = error.localizedDescription
             }
         }

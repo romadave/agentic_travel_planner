@@ -20,10 +20,6 @@ Why SwiftUI uses struct for views?
 - when you pass in new / assign a view it creates an independent copy
 - reduces / prevents side effects from shared, mutable state making the UI behaviro much easier to reason about and debug
 
-#Views
-#ViewModel
-#MainActor
-#Observable
 #Codable
 #Equatable
 #Sendable
@@ -63,3 +59,97 @@ Why SwiftUI uses struct for views?
 
 #.data(using: .utf8) - Converts a `String` into `Data` (raw bytes). `Data` is what `JSONDecoder` needs to decode JSON. UTF-8 is the encoding standard — it defines how characters map to bytes. Almost all JSON and web content uses UTF-8.
   Example: `let data = jsonString.data(using: .utf8)` → turns `"{\"type\":\"flights\"}"` into raw bytes that JSONDecoder can parse. Returns `nil` if the string can't be encoded (rare with UTF-8), so you typically `guard let` it.
+
+## Flutter → SwiftUI Concept Map
+
+| Flutter | SwiftUI | Notes |
+|---|---|---|
+| `StatefulWidget` + `State` | `View` + `@State` | SwiftUI views are structs not classes. No separate State class needed. |
+| `setState(() {...})` | Just mutate the `@State` var | SwiftUI detects changes automatically, no explicit setState call. |
+| `ValueNotifier<T>` | `@State var` + `Binding<T>` | Parent owns state with @State, child gets a Binding. Like passing a ValueNotifier down to a child widget. |
+| `ChangeNotifier` | `ObservableObject` + `@Published` | ViewModel pattern. @Published = notifyListeners() but automatic. |
+| `Provider` / `Riverpod` | `@EnvironmentObject` | Inject shared state anywhere down the tree without passing through every widget. |
+| `ValueListenableBuilder` | Not needed | SwiftUI rebuilds views automatically when @State/Binding changes. No builder widget required. |
+| `Navigator.push()` | `NavigationStack` + `.navigationDestination` | Declarative — driven by state (bool/value) not imperative push/pop calls. |
+| `Widget build()` | `var body: some View` | Same concept — returns the UI tree. Called whenever state changes. |
+| `const MyWidget()` | Automatic | Struct views are value types, SwiftUI handles diffing. No const optimization needed. |
+| `async/await` | `async/await` | Almost identical syntax. |
+| `Stream<T>` | `AsyncThrowingStream<T, Error>` | Async sequence of values over time. |
+| `StreamBuilder` | `for try await` in a `Task` + update `@State` | Consume streams and update state, UI rebuilds automatically. |
+| `final` param in widget constructor | `let` property in struct | Immutable input to a view. |
+| `TextEditingController` | `@Binding var text: String` | Two-way text field connection. Parent owns the string. |
+
+### Binding deep dive (Flutter parallel)
+In Flutter, if a parent has a `ValueNotifier<int>` and passes it to a child, the child can read `.value` and write `.value = 5`, and the parent sees the change.
+
+In SwiftUI, it's the same pattern:
+- Parent: `@State private var count: Int = 0`
+- Parent passes to child: `ChildView(count: $count)` — the `$` prefix creates a `Binding`
+- Child declares: `var count: Binding<Int>` (or `@Binding var count: Int`)
+- Child reads: `count.wrappedValue` (or just `count` with @Binding)
+- Child writes: `count.wrappedValue = 5` → parent's @State updates → both views rebuild
+
+`Binding<Int>?` (optional) means the parent CAN pass a binding OR leave it nil. This lets a component work in two modes: externally controlled (binding provided) or self-managed (binding is nil, use internal @State).
+
+## State Management: Shared ViewModels (Flutter ↔ SwiftUI)
+
+### The problem
+When two views need to share state (e.g. PlanningLoadingView writes stream data, ItinerariesView reads it), you can't use local `@State` — that's private to one view. Same problem in Flutter: local `setState` doesn't help when two widgets need the same data.
+
+### Flutter solution
+```dart
+// 1. Create a ChangeNotifier
+class TripResultNotifier extends ChangeNotifier {
+  List<ItineraryOption> itineraries = [];
+  List<FlightOption> flights = [];
+  bool isLoadingFlights = true;
+
+  void setFlights(List<FlightOption> f) {
+    flights = f;
+    isLoadingFlights = false;
+    notifyListeners();  // manually tell listeners
+  }
+}
+
+// 2. Provider OWNS the notifier (creates it, keeps it alive)
+Provider(create: (_) => TripResultNotifier(), child: ...)
+
+// 3. Consumer BORROWS the notifier (reads/watches it)
+Consumer<TripResultNotifier>(builder: (_, notifier, __) => ...)
+```
+
+### SwiftUI equivalent
+```swift
+// 1. Create an ObservableObject (= ChangeNotifier)
+@MainActor
+class TripResultViewModel: ObservableObject {
+    @Published var itineraries: [ItineraryOption] = []  // @Published = auto notifyListeners()
+    @Published var flights: [FlightOption] = []
+    @Published var isLoadingFlights: Bool = true
+}
+
+// 2. @StateObject OWNS it (= Provider — creates it, keeps it alive across rebuilds)
+struct PlanningLoadingView: View {
+    @StateObject private var resultVM = TripResultViewModel()
+}
+
+// 3. @ObservedObject BORROWS it (= Consumer — reads it, doesn't own it)
+struct ItinerariesView: View {
+    @ObservedObject var resultVM: TripResultViewModel
+}
+```
+
+### Key mappings
+
+| Flutter | SwiftUI | Role |
+|---|---|---|
+| `ChangeNotifier` | `ObservableObject` protocol | "I'm an object that notifies listeners on change" |
+| `notifyListeners()` | `@Published` (automatic) | Triggers UI rebuild. In SwiftUI, just assigning to a @Published var does this — no manual call needed. |
+| `Provider` (creates & owns) | `@StateObject` | **Owner** — creates the object, survives view rebuilds. Use in the PARENT that creates the view model. |
+| `Consumer` / `context.watch` | `@ObservedObject` | **Borrower** — reads the object, doesn't own it. If the owner goes away, the object goes away. Use in CHILD views. |
+| `context.read` (no rebuild) | Access without property wrapper | Read without subscribing to changes. |
+
+### @StateObject vs @ObservedObject — CRITICAL difference
+- `@StateObject` = **creates once, survives rebuilds**. Like `Provider` at the top of a widget tree. SwiftUI keeps the object alive even when the view struct is recreated.
+- `@ObservedObject` = **borrowed reference**. Like `Consumer`. If the parent view rebuilds and creates a new instance, SwiftUI uses the new one. That's why you NEVER use `@ObservedObject var vm = SomeVM()` — it would recreate on every rebuild and lose state.
+- Rule: use `@StateObject` exactly once (where you create it), `@ObservedObject` everywhere else (where you receive it).

@@ -181,13 +181,15 @@ final class TripAPIService {
                         
                         do {
                             let event = try TripStreamEvent.decode(from: jsonData)
-                            print("[SSE] Decoded event successfully")
+                            print("[SSE] Decoded event successfully: \(event)")
                             continuation.yield(event)
+                        } catch let decodingError as DecodingError {
+                            print("[SSE] DecodingError: \(decodingError)")
+                            print("[SSE] First 500 chars: \(String(jsonString.prefix(500)))")
+                            continuation.yield(.error("Failed to decode event: \(decodingError.localizedDescription)"))
                         } catch {
-                            print("[SSE] Decode error: \(error)")
-                            print("[SSE] JSON was: \(jsonString)")
-                            // Continue to next line instead of killing the whole stream
-                            continue
+                            print("[SSE] Other error: \(error)")
+                            continuation.yield(.error("Stream error: \(error.localizedDescription)"))
                         }
                     }
                     

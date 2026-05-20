@@ -13,7 +13,7 @@ struct HotelOption: Codable, Equatable, Sendable {
     let pricePerNight: Float
     let totalPrice: Float
     let amenities: [String]
-    let score: Int
+    let score: Double
     let reason: String
     let bookingUrl: String?
 }

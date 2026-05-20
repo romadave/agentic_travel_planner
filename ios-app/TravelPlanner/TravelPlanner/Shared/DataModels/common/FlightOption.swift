@@ -9,7 +9,7 @@ struct FlightOption: Codable, Equatable, Sendable {
     let rank: Int
     let airline: String
     let flightNumber: String?       // "TP 206" or "UA 900 · LH 1166"
-    let score: Int
+    let score: Double
     let origin: String
     let destination: String
     let reason: String

@@ -10,5 +10,5 @@ struct PartOfDay: Codable, Equatable, Sendable {
     let place: String?
     let foodSuggestion: String?
     let notes: String?
-    let includeNap: Bool
+    let includeNap: Bool?
 }

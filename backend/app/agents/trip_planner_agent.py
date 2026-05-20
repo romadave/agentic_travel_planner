@@ -25,9 +25,20 @@ async def plan_trip(request: FinalTripRequest) -> AsyncGenerator[str, None]:
     yield json.dumps({"type": "destinationInfo", **destination_info.model_dump()})
 
     itinerary_drafts = await itinerary_task
+    # Shape the itineraries event to match ItineraryOption (what iOS expects):
+    # hotelStops is empty here — it gets filled in by the "hotels" event later.
     yield json.dumps({
         "type": "itineraries",
-        "itineraryOptions": [d.model_dump() for d in itinerary_drafts]
+        "itineraryOptions": [
+            {
+                "optionNumber": d.optionNumber,
+                "style": d.style,
+                "description": d.description,
+                "days": [day.model_dump() for day in d.days],
+                "hotelStops": [],
+            }
+            for d in itinerary_drafts
+        ]
     })
 
     # Step 2: flights + hotels fetch and rank in parallel

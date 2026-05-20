@@ -10,5 +10,5 @@ struct ItineraryOption: Codable, Equatable, Sendable {
     let style: String           // "Base Camp", "Island Explorer", etc.
     let description: String
     let days: [TripDay]
-    let hotelStops: [HotelStop]
+    let hotelStops: [HotelStop]?
 }

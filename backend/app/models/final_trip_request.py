@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional, List
 from app.models.prompt_response import TravelerInfo, TransportPreferences, LodgingPreferences
 
@@ -76,6 +76,11 @@ class FlightOption(BaseModel):
     bookingUrl: Optional[str] = None
     familyAmenities: Optional[List[str]] = None
 
+    @field_validator('score', 'rank', 'price', mode='before')
+    @classmethod
+    def coerce_to_int(cls, v):
+        return round(float(v))
+
 class HotelOption(BaseModel):
     name: str
     type: Optional[str] = None  # "Apartment", "Boutique Hotel", etc.
@@ -88,10 +93,20 @@ class HotelOption(BaseModel):
     reason: str
     bookingUrl: Optional[str] = None
 
+    @field_validator('score', mode='before')
+    @classmethod
+    def coerce_to_int(cls, v):
+        return round(float(v))
+
 class HotelStop(BaseModel):
     area: str
     nights: int
     hotels: List[HotelOption]
+
+    @field_validator('nights', mode='before')
+    @classmethod
+    def coerce_to_int(cls, v):
+        return round(float(v))
 
 class ItineraryOption(BaseModel):
     optionNumber: int

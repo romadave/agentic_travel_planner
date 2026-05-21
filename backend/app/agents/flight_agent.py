@@ -1,6 +1,9 @@
+import logging
 from app.client.serp_client import serp_client
 from app.client.gemini_client import gemini_client
 from app.models.final_trip_request import FinalTripRequest
+
+logger = logging.getLogger(__name__)
 
 MAX_FLIGHTS = 6  # how many raw flights to pass to the ranking agent
 
@@ -12,12 +15,15 @@ def _parse_time(datetime_str: str) -> tuple[str, str]:
     return datetime_str, ""
 
 async def _resolve_airport_code(location: str) -> str:
+    logger.info("[flight_agent] Resolving airport code for: '%s'", location)
     raw = gemini_client.generate_text(
         model="gemini-flash-latest",
         user_prompt=f"What is the nearest major commercial IATA airport code for traveling to or from: {location}? Reply with the 3-letter code only. Example: SFO",
         system_prompt="You are an airport code lookup tool. Return only the 3-letter IATA code, nothing else. No explanation.",
     )
-    return raw.strip().upper()[:3]
+    code = raw.strip().upper()[:3]
+    logger.info("[flight_agent] Airport code for '%s' → %s", location, code)
+    return code
 
 def _extract_flights(raw: dict) -> list[dict]:
     results = []
@@ -71,6 +77,9 @@ async def fetch_flights(request: FinalTripRequest) -> list[dict]:
     adults = request.travelerInfo.travelerCount or 1
     children = 1 if request.travelerInfo.hasKids else 0
 
+    logger.info("[flight_agent] Searching SerpAPI flights: %s → %s | out: %s | return: %s | adults: %d | children: %d",
+                origin, destination, departure, returning, adults, children)
+
     raw = await serp_client.search_flights(
         origin=origin,
         destination=destination,
@@ -80,4 +89,6 @@ async def fetch_flights(request: FinalTripRequest) -> list[dict]:
         children=children,
     )
 
-    return _extract_flights(raw)
+    flights = _extract_flights(raw)
+    logger.info("[flight_agent] SerpAPI returned %d flight options", len(flights))
+    return flights

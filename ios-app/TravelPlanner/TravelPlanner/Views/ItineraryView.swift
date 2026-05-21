@@ -6,8 +6,8 @@
 import SwiftUI
 
 struct ItineraryView: View {
-    let itinerary: ItineraryOption
-    let flights: [FlightOption]
+    @ObservedObject var resultVM: TripResultViewModel
+    let optionNumber: Int
     let destination: String
     var travelerCount: Int = 1
 
@@ -25,13 +25,20 @@ struct ItineraryView: View {
         case budget = "Budget"
     }
 
-    // Derived values
+    // Reactive derived values — these update when resultVM publishes changes
+    private var itinerary: ItineraryOption {
+        resultVM.itineraryOptions.first(where: { $0.optionNumber == optionNumber })
+            ?? ItineraryOption(optionNumber: optionNumber, style: "", description: "", days: [], hotelStops: nil)
+    }
+
+    private var flights: [FlightOption] { resultVM.flights }
+
     private var topFlight: FlightOption? {
         flights.min(by: { $0.rank < $1.rank })
     }
 
     private var topHotel: HotelOption? {
-        itinerary.hotelStops.flatMap(\.hotels).first
+        (itinerary.hotelStops ?? []).flatMap(\.hotels).first
     }
 
     private var dateRange: String {
@@ -125,7 +132,7 @@ struct ItineraryView: View {
         HStack(spacing: 12) {
             if let flight = topFlight {
                 NavigationLink {
-                    FlightsView(flights: flights, origin: flight.origin, destination: flight.destination, departureDate: flight.departureDate, hasKids: itinerary.hotelStops.flatMap(\.hotels).first?.amenities.isEmpty == false)
+                    FlightsView(flights: flights, origin: flight.origin, destination: flight.destination, departureDate: flight.departureDate, hasKids: topHotel?.amenities.isEmpty == false)
                 } label: {
                     quickAccessLabel(
                         icon: "sparkles",
@@ -134,16 +141,20 @@ struct ItineraryView: View {
                     )
                 }
                 .buttonStyle(.plain)
+            } else if !resultVM.isLoadingFlights {
+                quickAccessLabel(icon: "sparkles", title: "Flights", subtitle: "No flights found")
+            } else {
+                quickAccessLabel(icon: "sparkles", title: "Flights", subtitle: "Loading...")
             }
 
             if let hotel = topHotel {
                 NavigationLink {
                     HotelsView(
-                        hotelStops: itinerary.hotelStops,
+                        hotelStops: itinerary.hotelStops ?? [],
                         destination: destination,
                         departureDate: itinerary.days.first?.date ?? "",
                         returnDate: itinerary.days.last?.date ?? "",
-                        hasKids: itinerary.hotelStops.flatMap(\.hotels).contains(where: { !$0.amenities.isEmpty })
+                        hasKids: (itinerary.hotelStops ?? []).flatMap(\.hotels).contains(where: { !$0.amenities.isEmpty })
                     )
                 } label: {
                     quickAccessLabel(
@@ -153,6 +164,10 @@ struct ItineraryView: View {
                     )
                 }
                 .buttonStyle(.plain)
+            } else if !resultVM.isLoadingHotels {
+                quickAccessLabel(icon: "bed.double", title: "Stay", subtitle: "No hotels found")
+            } else {
+                quickAccessLabel(icon: "bed.double", title: "Stay", subtitle: "Loading...")
             }
         }
     }
@@ -390,22 +405,29 @@ struct ItineraryView: View {
         ])
     ]
 
-    let itinerary = ItineraryOption(
-        optionNumber: 1,
-        style: "Balanced",
-        description: "A mix of culture, food, and relaxation.",
-        days: sampleDays,
-        hotelStops: sampleHotelStops
-    )
-
-    let flights = [
-        FlightOption(rank: 1, airline: "TAP", flightNumber: "TP 206", score: 9, origin: "SFO", destination: "LIS", reason: "Direct route", price: 1180, duration: 11.3, layovers: ["JFK"], departureDate: "2026-07-12", departureTime: "18:30", returnDate: "2026-07-19", returnTime: "10:00", bookingUrl: nil, familyAmenities: ["Bassinet available"])
-    ]
+    let vm: TripResultViewModel = {
+        let v = TripResultViewModel()
+        v.itineraryOptions = [
+            ItineraryOption(
+                optionNumber: 1,
+                style: "Balanced",
+                description: "A mix of culture, food, and relaxation.",
+                days: sampleDays,
+                hotelStops: sampleHotelStops
+            )
+        ]
+        v.flights = [
+            FlightOption(rank: 1, airline: "TAP", flightNumber: "TP 206", score: 9, origin: "SFO", destination: "LIS", reason: "Direct route", price: 1180, duration: 11.3, layovers: ["JFK"], departureDate: "2026-07-12", departureTime: "18:30", returnDate: "2026-07-19", returnTime: "10:00", bookingUrl: nil, familyAmenities: ["Bassinet available"])
+        ]
+        v.isLoadingFlights = false
+        v.isLoadingHotels = false
+        return v
+    }()
 
     NavigationStack {
         ItineraryView(
-            itinerary: itinerary,
-            flights: flights,
+            resultVM: vm,
+            optionNumber: 1,
             destination: "Lisbon",
             travelerCount: 3
         )

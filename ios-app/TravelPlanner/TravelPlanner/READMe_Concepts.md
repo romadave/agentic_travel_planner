@@ -153,3 +153,19 @@ struct ItinerariesView: View {
 - `@StateObject` = **creates once, survives rebuilds**. Like `Provider` at the top of a widget tree. SwiftUI keeps the object alive even when the view struct is recreated.
 - `@ObservedObject` = **borrowed reference**. Like `Consumer`. If the parent view rebuilds and creates a new instance, SwiftUI uses the new one. That's why you NEVER use `@ObservedObject var vm = SomeVM()` — it would recreate on every rebuild and lose state.
 - Rule: use `@StateObject` exactly once (where you create it), `@ObservedObject` everywhere else (where you receive it).
+
+## Array Operations
+
+#flatMap - Does **map + flatten** in one step. When each element maps to an array, `flatMap` collects all those arrays and merges them into a single flat array.
+  ```swift
+  // Each HotelStop has a .hotels array:
+  // HotelStop 1 → [Hotel A, Hotel B]
+  // HotelStop 2 → [Hotel C]
+  // HotelStop 3 → [Hotel D, Hotel E, Hotel F]
+
+  hotelStops.map(\.hotels)     // → [[Hotel A, B], [Hotel C], [Hotel D, E, F]]  (nested)
+  hotelStops.flatMap(\.hotels)  // → [Hotel A, B, C, D, E, F]                   (flat)
+  ```
+  - `.map` transforms each element 1:1 — array in, array of same length out.
+  - `.flatMap` transforms each element into an array, then flattens all those arrays into one.
+  - Flutter/Dart equivalent: `.expand()` → `hotelStops.expand((stop) => stop.hotels).toList()`

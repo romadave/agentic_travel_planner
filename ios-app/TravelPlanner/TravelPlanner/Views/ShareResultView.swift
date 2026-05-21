@@ -37,11 +37,11 @@ struct ShareResultView: View {
     }
 
     private var topHotel: HotelOption? {
-        itinerary.hotelStops.flatMap(\.hotels).first
+        itinerary.hotelStops?.flatMap(\.hotels).first
     }
 
     private var totalNights: Int {
-        itinerary.hotelStops.reduce(0) { $0 + $1.nights }
+        (itinerary.hotelStops ?? []).reduce(0) { $0 + $1.nights }
     }
 
     private var totalPrice: Int {

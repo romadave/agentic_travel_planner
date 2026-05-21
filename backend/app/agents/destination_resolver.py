@@ -1,5 +1,8 @@
 import json
+import logging
 from app.client.gemini_client import gemini_client
+
+logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """
 You are a travel destination normalizer. Given any destination description — a landmark, national park, neighborhood, city, or region — resolve it to a proper travel destination a trip planner can use.
@@ -23,10 +26,7 @@ Examples:
 """
 
 async def resolve_destination(raw_destination: str) -> dict:
-    """
-    Normalizes a free-text destination to a proper city/region + gateway airport code.
-    Falls back gracefully if Gemini returns unexpected output.
-    """
+    logger.info("[destination_resolver] Resolving: '%s'", raw_destination)
     raw = gemini_client.generate_text(
         model="gemini-flash-latest",
         user_prompt=f"Destination: {raw_destination}",
@@ -36,8 +36,13 @@ async def resolve_destination(raw_destination: str) -> dict:
     start = raw.find("{")
     end = raw.rfind("}")
     if start == -1 or end == -1:
+        logger.warning("[destination_resolver] No JSON in Gemini response, using raw input as fallback")
         return {"resolvedDestination": raw_destination, "gatewayAirport": ""}
     try:
-        return json.loads(raw[start:end + 1])
+        result = json.loads(raw[start:end + 1])
+        logger.info("[destination_resolver] Resolved to: '%s' (airport: %s)",
+                    result.get("resolvedDestination"), result.get("gatewayAirport"))
+        return result
     except json.JSONDecodeError:
+        logger.error("[destination_resolver] JSON parse failed. Raw response: %s", raw)
         return {"resolvedDestination": raw_destination, "gatewayAirport": ""}

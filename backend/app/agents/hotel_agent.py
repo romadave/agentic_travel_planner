@@ -1,7 +1,10 @@
 import asyncio
+import logging
 from urllib.parse import quote_plus
 from app.client.serp_client import serp_client
 from app.models.final_trip_request import FinalTripRequest, ItineraryDraft
+
+logger = logging.getLogger(__name__)
 
 MAX_HOTELS_PER_AREA = 5
 
@@ -36,6 +39,9 @@ async def _search_area(area: str, request: FinalTripRequest) -> tuple[str, list[
     check_in = request.schedule.departureDate or ""
     check_out = request.schedule.returnDate or ""
 
+    logger.info("[hotel_agent] Searching SerpAPI hotels: '%s' | check-in: %s | check-out: %s | adults: %d | children: %d",
+                area, check_in, check_out, adults, children)
+
     raw = await serp_client.search_hotels(
         location=area,
         check_in_date=check_in,
@@ -44,7 +50,9 @@ async def _search_area(area: str, request: FinalTripRequest) -> tuple[str, list[
         children=children,
     )
 
-    return area, _extract_hotels(raw, area)
+    hotels = _extract_hotels(raw, area)
+    logger.info("[hotel_agent] SerpAPI returned %d hotels for '%s'", len(hotels), area)
+    return area, hotels
 
 async def fetch_hotels_for_itineraries(
     itinerary_drafts: list[ItineraryDraft],

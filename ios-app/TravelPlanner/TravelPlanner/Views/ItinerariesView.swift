@@ -53,6 +53,7 @@ struct ItinerariesView: View {
                 .padding(.bottom, 40)
             }
         }
+        .navigationBarBackButtonHidden(true)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -160,8 +161,8 @@ struct ItinerariesView: View {
             ForEach(Array(itineraryOptions.enumerated()), id: \.element.optionNumber) { _, option in
                 NavigationLink {
                     ItineraryView(
-                        itinerary: option,
-                        flights: flights,
+                        resultVM: resultVM,
+                        optionNumber: option.optionNumber,
                         destination: destination,
                         travelerCount: draft.travelerInfo.travelerCount ?? 1
                     )
@@ -182,7 +183,7 @@ struct ItinerariesView: View {
                     .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radii.inner))
 
                 // Score badge
-                let topHotel = option.hotelStops.flatMap(\.hotels).max(by: { $0.score < $1.score })
+                let topHotel = option.hotelStops?.flatMap(\.hotels).max(by: { $0.score < $1.score })
                 if let score = topHotel?.score {
                     HStack(spacing: 4) {
                         Image(systemName: "figure.and.child.holdinghands")
@@ -233,10 +234,12 @@ struct ItinerariesView: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 2) {
-                    let totalPrice = option.hotelStops.flatMap(\.hotels).first.map {
+                    let hotelPrice = option.hotelStops?.flatMap(\.hotels).first.map {
                         Int($0.totalPrice)
                     } ?? 0
-                    Text("$\(totalPrice)")
+                    let flightPrice = flights.min(by: { $0.rank < $1.rank })?.price ?? 0
+                    let totalPrice = hotelPrice + flightPrice
+                    Text(totalPrice > 0 ? "$\(totalPrice)" : "—")
                         .font(.system(size: 22, weight: .semibold, design: .default))
                         .foregroundColor(C.textPrimary)
                     Text("TOTAL · \(option.days.count)N")
@@ -253,8 +256,8 @@ struct ItinerariesView: View {
                 .lineLimit(2)
 
             // Tag chips — use area names from stops
-            let tags = option.hotelStops.map(\.area)
-            if !tags.isEmpty {
+            let tags = (option.hotelStops ?? []).map(\.area)
+            if !(tags.isEmpty) {
                 FlowLayout(spacing: 8) {
                     ForEach(tags, id: \.self) { tag in
                         Text(tag)

@@ -109,7 +109,7 @@ async def rank_flights(
       FLIGHTS TO RANK:                                                                                                                                                                                                     
       {json.dumps(flights, indent=2)}
       """                                                                                                                                                                                                                    
-      raw = gemini_client.generate_text(
+      raw = await gemini_client.generate_text(
         model="gemini-flash-latest",                                                                                                                                                                                   
         user_prompt=user_prompt,                                                                                                                                                                                     
         system_prompt=FLIGHT_RANKING_PROMPT,
@@ -144,7 +144,7 @@ async def rank_hotels(
       ITINERARY OPTIONS WITH HOTELS TO RANK:
       {json.dumps(options_with_hotels, indent=2)}                                                                                                                                                                            
       """                                                                                                                                                                                                                  
-      raw = gemini_client.generate_text(
+      raw = await gemini_client.generate_text(
         model="gemini-flash-latest",                                                                                                                                                                                   
         user_prompt=user_prompt,
         system_prompt=HOTEL_RANKING_PROMPT,                                                                                                                                                                            

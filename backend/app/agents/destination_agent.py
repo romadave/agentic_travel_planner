@@ -33,7 +33,7 @@ async def generate_destination_info(request: FinalTripRequest) -> DestinationInf
 Destination: {destination}
 Travel month: {departure}
 """
-    raw = gemini_client.generate_text(
+    raw = await gemini_client.generate_text(
         model="gemini-flash-latest",
         user_prompt=user_prompt,
         system_prompt=SYSTEM_PROMPT,

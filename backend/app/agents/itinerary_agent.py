@@ -112,7 +112,7 @@ def _parse_response(raw: str) -> list[dict]:
 async def generate_itinerary_options(request: FinalTripRequest) -> list[ItineraryDraft]:
     user_prompt = _build_user_prompt(request)
     raw = await gemini_client.generate_text(
-        model="gemini-2.0-flash",
+        model="gemini-flash-latest",
         user_prompt=user_prompt,
         system_prompt=SYSTEM_PROMPT,
     )

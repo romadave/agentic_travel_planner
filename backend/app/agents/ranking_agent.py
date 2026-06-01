@@ -110,7 +110,7 @@ async def rank_flights(
       {json.dumps(flights, indent=2)}
       """                                                                                                                                                                                                                    
       raw = await gemini_client.generate_text(
-        model="gemini-2.0-flash",                                                                                                                                                                                   
+        model="gemini-flash-latest",                                                                                                                                                                                   
         user_prompt=user_prompt,                                                                                                                                                                                     
         system_prompt=FLIGHT_RANKING_PROMPT,
       )                                                                                                                                                                                                                  
@@ -145,7 +145,7 @@ async def rank_hotels(
       {json.dumps(options_with_hotels, indent=2)}                                                                                                                                                                            
       """                                                                                                                                                                                                                  
       raw = await gemini_client.generate_text(
-        model="gemini-2.0-flash",                                                                                                                                                                                   
+        model="gemini-flash-latest",                                                                                                                                                                                   
         user_prompt=user_prompt,
         system_prompt=HOTEL_RANKING_PROMPT,                                                                                                                                                                            
       )                                                                                                                                                                                                                

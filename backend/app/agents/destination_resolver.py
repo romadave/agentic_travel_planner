@@ -28,7 +28,7 @@ Examples:
 async def resolve_destination(raw_destination: str) -> dict:
     logger.info("[destination_resolver] Resolving: '%s'", raw_destination)
     raw = await gemini_client.generate_text(
-        model="gemini-2.0-flash",
+        model="gemini-flash-latest",
         user_prompt=f"Destination: {raw_destination}",
         system_prompt=SYSTEM_PROMPT,
     )

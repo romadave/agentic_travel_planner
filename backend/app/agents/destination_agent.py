@@ -34,7 +34,7 @@ Destination: {destination}
 Travel month: {departure}
 """
     raw = await gemini_client.generate_text(
-        model="gemini-flash-latest",
+        model="gemini-3.5-flash",
         user_prompt=user_prompt,
         system_prompt=SYSTEM_PROMPT,
     )

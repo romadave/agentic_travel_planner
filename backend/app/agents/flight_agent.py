@@ -17,7 +17,7 @@ def _parse_time(datetime_str: str) -> tuple[str, str]:
 async def _resolve_airport_code(location: str) -> str:
     logger.info("[flight_agent] Resolving airport code for: '%s'", location)
     raw = await gemini_client.generate_text(
-        model="gemini-flash-latest",
+        model="gemini-3.5-flash",
         user_prompt=f"What is the nearest major commercial IATA airport code for traveling to or from: {location}? Reply with the 3-letter code only. Example: SFO",
         system_prompt="You are an airport code lookup tool. Return only the 3-letter IATA code, nothing else. No explanation.",
     )

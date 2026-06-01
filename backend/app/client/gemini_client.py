@@ -3,6 +3,7 @@ import asyncio
 import logging
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 from google.genai.errors import ServerError, ClientError
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ def _is_retryable(exc: Exception) -> bool:
     return False
 
 _MAX_RETRIES = 3
-_BACKOFF_BASE = 2.0  # seconds — doubles each attempt
+_BACKOFF_BASE = 2.0
 
 
 class GeminiClient:
@@ -25,7 +26,7 @@ class GeminiClient:
         if not api_key:
             raise ValueError("GEMINI_API_KEY is not set")
         self._client = genai.Client(api_key=api_key)
-        self.default_model = "gemini-flash-latest"
+        self.default_model = "gemini-3.5-flash"
 
     async def generate_text(
         self,
@@ -33,9 +34,16 @@ class GeminiClient:
         user_prompt: str,
         system_prompt: str,
         model: str | None = None,
+        thinking_level: str = "medium",
     ) -> str:
         target_model = model or self.default_model
         last_exc: Exception | None = None
+
+        config = types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            temperature=0.1,
+            thinking_config=types.ThinkingConfig(thinking_level=thinking_level),
+        )
 
         for attempt in range(_MAX_RETRIES):
             try:
@@ -43,7 +51,7 @@ class GeminiClient:
                     self._client.models.generate_content,
                     model=target_model,
                     contents=user_prompt,
-                    config={"system_instruction": system_prompt},
+                    config=config,
                 )
                 return response.text or ""
             except (ServerError, ClientError) as exc:

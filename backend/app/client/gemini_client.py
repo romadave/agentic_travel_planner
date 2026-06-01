@@ -15,8 +15,9 @@ def _is_retryable(exc: Exception) -> bool:
         return True
     return False
 
-def _is_503(exc: Exception) -> bool:
-    return isinstance(exc, ServerError) and getattr(exc, "code", None) == 503
+def _should_swap_model(exc: Exception) -> bool:
+    code = getattr(exc, "code", None)
+    return isinstance(exc, ServerError) and code in (500, 503)
 
 _MAX_RETRIES = 3
 _BACKOFF_BASE = 2.0
@@ -29,8 +30,8 @@ class GeminiClient:
         if not api_key:
             raise ValueError("GEMINI_API_KEY is not set")
         self._client = genai.Client(api_key=api_key)
-        self.default_model = "gemini-2.5-pro"
-        self.fallback_model = "gemini-2.5-flash"
+        self.default_model = "gemini-2.5-pro-001"
+        self.fallback_model = "gemini-2.5-flash-001"
 
     async def generate_text(
         self,
@@ -39,7 +40,7 @@ class GeminiClient:
         system_prompt: str,
         model: str | None = None,
         fallback_model: str | None = None,
-        thinking_level: str = "medium",
+        thinking_level: str | None = None,
     ) -> str:
         target_model = model or self.default_model
         fb_model = fallback_model if fallback_model is not None else self.fallback_model
@@ -48,7 +49,7 @@ class GeminiClient:
 
         config = types.GenerateContentConfig(
             system_instruction=system_prompt,
-            thinking_config=types.ThinkingConfig(thinking_level=thinking_level),
+            thinking_config=types.ThinkingConfig(thinking_level=thinking_level) if thinking_level else None,
         )
 
         for attempt in range(_MAX_RETRIES):
@@ -63,13 +64,17 @@ class GeminiClient:
             except (ServerError, ClientError) as exc:
                 if not _is_retryable(exc):
                     raise
-                if _is_503(exc) and fb_model and not switched_to_fallback:
+                if _should_swap_model(exc) and fb_model and not switched_to_fallback:
                     logger.warning(
-                        "[gemini_client] 503 on %s — switching to fallback %s immediately",
-                        target_model, fb_model,
+                        "[gemini_client] %d on %s — switching to fallback %s immediately",
+                        getattr(exc, "code", 0), target_model, fb_model,
                     )
                     target_model = fb_model
                     switched_to_fallback = True
+                    config = types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        thinking_config=None,
+                    )
                     last_exc = exc
                     continue
                 last_exc = exc

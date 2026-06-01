@@ -3,11 +3,17 @@ import asyncio
 import logging
 from dotenv import load_dotenv
 from google import genai
-from google.api_core.exceptions import ServiceUnavailable, ResourceExhausted
+from google.genai.errors import ServerError, ClientError
 
 logger = logging.getLogger(__name__)
 
-_RETRYABLE = (ServiceUnavailable, ResourceExhausted)
+def _is_retryable(exc: Exception) -> bool:
+    if isinstance(exc, ServerError):
+        return True
+    if isinstance(exc, ClientError) and exc.code == 429:
+        return True
+    return False
+
 _MAX_RETRIES = 3
 _BACKOFF_BASE = 2.0  # seconds — doubles each attempt
 
@@ -40,7 +46,9 @@ class GeminiClient:
                     config={"system_instruction": system_prompt},
                 )
                 return response.text or ""
-            except _RETRYABLE as exc:
+            except (ServerError, ClientError) as exc:
+                if not _is_retryable(exc):
+                    raise
                 last_exc = exc
                 wait = _BACKOFF_BASE ** attempt
                 logger.warning(

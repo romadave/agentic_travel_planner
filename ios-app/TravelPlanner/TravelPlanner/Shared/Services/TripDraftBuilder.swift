@@ -39,9 +39,9 @@ struct TripDraftBuilder {
         )
 
         let travelerInfo = TravelerInfo(
-            travelerCount: parsed.travelerInfo.travelerCount,
+            adultCount: parsed.travelerInfo.adultCount,
             hasKids: parsed.travelerInfo.hasKids,
-            youngestTravelerAge: parsed.travelerInfo.youngestTravelerAge
+            kidsAges: parsed.travelerInfo.kidsAges,
         )
 
         // Respect expected parameter order/labels (hotel before airbnb if the type requires it)
@@ -62,6 +62,8 @@ struct TripDraftBuilder {
             layoversAllowed: parsed.transportPreferences.layoversAllowed,
             privateCabinPreferred: parsed.transportPreferences.privateCabinPreferred,
         )
+        
+        let tripPreferences = parsed.tripPreferences ?? ""
 
         print("DRAFT : ", route.self, schedule.self, travelerInfo.self)
         return TripRequestDraft(
@@ -70,6 +72,7 @@ struct TripDraftBuilder {
             travelerInfo: travelerInfo,
             transportPreferences: transportPreferences,
             lodgingPreferences: lodgingPreferences,
+            tripPreferences: tripPreferences
         )
     }
 }

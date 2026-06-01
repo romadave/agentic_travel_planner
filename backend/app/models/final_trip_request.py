@@ -22,6 +22,7 @@ class FinalTripRequest(BaseModel):
     travelerInfo: TravelerInfo = TravelerInfo()
     transportPreferences: TransportPreferences = TransportPreferences()
     lodgingPreferences: LodgingPreferences = LodgingPreferences()
+    tripPreferences: Optional[str] = None
 
 
 # ── /finalTripRequest — Output models ────────────────────────────────

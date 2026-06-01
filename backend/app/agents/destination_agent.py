@@ -6,7 +6,7 @@ SYSTEM_PROMPT = """
 You are a travel expert providing destination highlights for a family trip.
 
 Given a destination and travel month, return a JSON object with exactly these fields:
-- "country": the full country or destination name (e.g. "Portugal")
+- "country": the full country or destination name(e.g. "Portugal")
 - "tagline": a short, evocative 1-line description of the destination (max 10 words, poetic tone)
 - "weather": typical weather for that month as a short string (e.g. "26° · Sunny", "18° · Partly Cloudy")
 - "timezone": the timezone in GMT offset format (e.g. "GMT+1", "GMT-5")

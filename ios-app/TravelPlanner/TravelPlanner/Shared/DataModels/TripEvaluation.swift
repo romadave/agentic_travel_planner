@@ -11,9 +11,8 @@ enum TripRequirement: String, Codable, CaseIterable {
     case destination
     case origin
     case travelDates
-    case travelerCount
+    case adultCount
     case hasKids
-    case youngestTravelerAge
     case transportMode
     case lodgingPreferences
 }

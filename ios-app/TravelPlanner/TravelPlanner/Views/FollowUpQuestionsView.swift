@@ -16,7 +16,8 @@ struct FollowUpQuestionsView: View {
     @State private var returnDate: Date = .now
     @State private var adultCount: Int = 2
     @State private var travelingWithKids: Bool = false
-    @State private var youngestAge: Int = 3
+    @State private var numberOfKids: Int = 1
+    @State private var kidsAges: [Int] = [3]
     @State private var flightSelected = false
     @State private var roadSelected = false
     @State private var trainSelected = false
@@ -309,11 +310,11 @@ struct FollowUpQuestionsView: View {
                 }
             }
 
-        case .travelerCount, .hasKids, .youngestTravelerAge:
+        case .adultCount, .hasKids:
             VStack(spacing: 0) {
                 StepperRow(
-                    label: "Travelers",
-                    subtitle: "Total number of people",
+                    label: "Adults",
+                    subtitle: "Number of adults",
                     icon: "person.crop.circle",
                     value: $adultCount,
                     range: 1...20
@@ -339,18 +340,64 @@ struct FollowUpQuestionsView: View {
                 }
                 .padding(.vertical, 14)
 
-                // Youngest age — only if traveling with kids
                 if travelingWithKids {
                     Divider()
 
+                    // How many kids
                     StepperRow(
-                        label: "Youngest traveler age",
-                        subtitle: "\(youngestAge) years old",
-                        icon: "birthday.cake",
-                        value: $youngestAge,
-                        range: 0...17
+                        label: "Number of kids",
+                        subtitle: "\(numberOfKids) kid\(numberOfKids == 1 ? "" : "s")",
+                        icon: "figure.2.and.child.holdinghands",
+                        value: Binding(
+                            get: { numberOfKids },
+                            set: { newCount in
+                                let oldCount = numberOfKids
+                                numberOfKids = newCount
+                                if newCount > oldCount {
+                                    // Append default age (3) for each new kid
+                                    for _ in oldCount..<newCount {
+                                        kidsAges.append(3)
+                                    }
+                                } else if newCount < oldCount {
+                                    // Remove from the end
+                                    kidsAges = Array(kidsAges.prefix(newCount))
+                                }
+                            }
+                        ),
+                        range: 1...10
                     )
                     .padding(.vertical, 14)
+
+                    // Age stepper for each kid
+                    ForEach(0..<numberOfKids, id: \.self) { index in
+                        Divider()
+                        StepperRow(
+                            label: "Child \(index + 1) age",
+                            subtitle: "\(kidsAges[index]) years old",
+                            icon: "birthday.cake",
+                            value: Binding(
+                                get: { kidsAges[index] },
+                                set: { kidsAges[index] = $0 }
+                            ),
+                            range: 0...17
+                        )
+                        .padding(.vertical, 14)
+                    }
+                }
+
+                // Total travelers summary
+                if travelingWithKids {
+                    Divider()
+                    HStack {
+                        Image(systemName: "person.3")
+                            .font(.system(size: 16))
+                            .foregroundColor(C.textSecondary)
+                        Text("Total travelers: \(adultCount + numberOfKids)")
+                            .font(T.body)
+                            .foregroundColor(C.textSecondary)
+                        Spacer()
+                    }
+                    .padding(.vertical, 10)
                 }
             }
             .padding(.horizontal, S.sm)
@@ -363,6 +410,7 @@ struct FollowUpQuestionsView: View {
                     .stroke(C.patternLine, lineWidth: 1)
             )
             .animation(.easeInOut(duration: 0.25), value: travelingWithKids)
+            .animation(.easeInOut(duration: 0.25), value: numberOfKids)
 
         case .transportMode:
             FlowLayout(spacing: 10) {
@@ -447,11 +495,13 @@ struct FollowUpQuestionsView: View {
             viewModel.updateOrigin(textAnswer)
         case .travelDates:
             viewModel.updateTravelDates(departure: departureDate, returnDate: returnDate)
-        case .travelerCount, .hasKids, .youngestTravelerAge:
-            viewModel.updateTravelerCount(adultCount)
+        case .adultCount, .hasKids:
+            viewModel.updateAdultCount(adultCount)
             viewModel.updateHasKids(travelingWithKids)
             if travelingWithKids {
-                viewModel.updateYoungestTravelerAge(youngestAge)
+                viewModel.updateKidsAges(kidsAges)
+            } else {
+                viewModel.updateKidsAges(nil)
             }
         case .transportMode:
             viewModel.setTransportModes(flight: flightSelected, road: roadSelected, train: trainSelected)
@@ -465,7 +515,8 @@ struct FollowUpQuestionsView: View {
         textAnswer = ""
         adultCount = 2
         travelingWithKids = false
-        youngestAge = 3
+        numberOfKids = 1
+        kidsAges = [3]
         flightSelected = false
         roadSelected = false
         trainSelected = false
@@ -480,7 +531,7 @@ struct FollowUpQuestionsView: View {
         case .origin:       return "Where are you flying from?"
         case .destination:  return "Where are you headed?"
         case .travelDates:  return "When works best?"
-        case .travelerCount, .hasKids, .youngestTravelerAge:
+        case .adultCount, .hasKids:
             return "Who's traveling?"
         case .transportMode:
             return "How do you want to get there?"
@@ -494,7 +545,7 @@ struct FollowUpQuestionsView: View {
         case .origin:       return "We'll use this to find the best flight options."
         case .destination:  return "We'll build your itinerary around this."
         case .travelDates:  return "We can nudge dates ±3 days to save up to 40%."
-        case .travelerCount, .hasKids, .youngestTravelerAge:
+        case .adultCount, .hasKids:
             return "We'll tailor activities for everyone."
         case .transportMode:
             return "Pick all that work for you."
@@ -584,7 +635,7 @@ struct FlowLayout: Layout {
     let vm = TripDraftViewModel()
     vm.updateDestination("Paris")
     vm.updateOrigin("NYC")
-    vm.updateTravelerCount(2)
+    vm.updateAdultCount(2)
     vm.updateLodgingHotel(true)
     vm.reevaluateDraft()
 

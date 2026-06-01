@@ -18,10 +18,11 @@ Rules:
 5. If the user mentions vague date information like "in June" or "next summer", put that in schedule.dateText.
 6. If exact departure or return dates are not given, keep departureDateText and returnDateText as null.
 7. If the user mentions duration like "for 5 days", populate numberOfDays if clear.
-8. If the user mentions children or a toddler, set travelers.hasKids = true.
-9. If the age of the child is not explicitly stated, keep youngestTravelerAge as null.
-10. Do not include any keys outside the schema.
-11. Output JSON only. No markdown, no explanation.
+8. If the user mentions children or a toddler, set travelerInfo.hasKids = true.
+9. If the ages of the children are explicitly stated, populate kidsAges as a list of integers (e.g. [2, 5]). Otherwise keep kidsAges as null.
+10. If the user mentions travel style, activity preferences, or trip vibe (e.g. "mix of adult and child activities", "adventurous", "relaxing beach trip", "balance grown-up and kid-friendly"), capture that as a concise summary in tripPreferences.
+11. Do not include any keys outside the schema.
+12. Output JSON only. No markdown, no explanation.
 
 JSON schema:
 {{
@@ -52,10 +53,11 @@ JSON schema:
     "privateCabinPreferred": "boolean | null"
   },
   "travelerInfo": {
-    "travelerCount": "integer | null",
+    "adultCount": "integer | null",
     "hasKids": "boolean | null",
-    "youngestTravelerAge": "integer | null"
-  }
+    "kidsAges": ["integer"] | null
+  },
+  "tripPreferences": "string | null"
 }}
 """
 

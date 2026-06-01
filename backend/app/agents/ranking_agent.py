@@ -11,7 +11,7 @@ from app.models.final_trip_request import (
 
 FLIGHT_RANKING_PROMPT = """                                                                                                                                                                                            
   You are a family travel expert ranking flights for a trip with young children.
-  Rank and score each flight 1-10. Higher = better for a family with a toddler.                                                                                                                                          
+  Rank and score each flight 1-10. Higher = better for a family with children.                                                                                                                                          
   Prefer: direct flights, morning departures, shorter total duration, reasonable price.                                                                                                                                  
   Sort flights best-first.                                                                                                                                                                                               
                                                                                                                                                                                                                          
@@ -101,7 +101,7 @@ async def rank_flights(
       flights: list[dict],                                                                                                                                                                                               
   ) -> list[FlightOption]:                                                                                                                                                                                             
       user_prompt = f"""
-      Family trip: {request.travelerInfo.travelerCount} travelers, youngest is {request.travelerInfo.youngestTravelerAge} years old.
+      Family trip: {request.travelerInfo.resolved_traveler_count} travelers, youngest is {request.travelerInfo.youngest_age} years old.
       Origin: {request.route.origin}, Destination: {request.route.resolvedDestination or request.route.destination}
       Layovers allowed: {request.transportPreferences.layoversAllowed}                                                                                                                                                       
       Budget flight preferred: {request.transportPreferences.budgetFlight}                                                                                                                                               
@@ -138,7 +138,7 @@ async def rank_hotels(
           })                                                                                                                                                                                                             
    
       user_prompt = f"""                                                                                                                                                                                                 
-      Family trip: {request.travelerInfo.travelerCount} travelers, youngest is {request.travelerInfo.youngestTravelerAge} years old.                                                                                       
+      Family trip: {request.travelerInfo.resolved_traveler_count} travelers, youngest is {request.travelerInfo.youngest_age} years old.                                                                                       
       Destination: {request.route.resolvedDestination or request.route.destination}
       
       ITINERARY OPTIONS WITH HOTELS TO RANK:

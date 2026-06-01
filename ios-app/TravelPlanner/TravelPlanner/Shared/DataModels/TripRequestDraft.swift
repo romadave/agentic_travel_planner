@@ -21,6 +21,7 @@ struct TripRequestDraft: Codable, Equatable, Sendable {
     var travelerInfo: TravelerInfo = TravelerInfo()
     var transportPreferences: TransportPreferences = TransportPreferences()
     var lodgingPreferences: LodgingPreferences = LodgingPreferences()
+    var tripPreferences: String?
 }
 
 

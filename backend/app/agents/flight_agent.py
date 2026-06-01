@@ -74,8 +74,8 @@ async def fetch_flights(request: FinalTripRequest) -> list[dict]:
     destination = request.route.gatewayAirport or await _resolve_airport_code(request.route.destination or "")
     departure = request.schedule.departureDate or ""
     returning = request.schedule.returnDate or ""
-    adults = request.travelerInfo.travelerCount or 1
-    children = 1 if request.travelerInfo.hasKids else 0
+    adults = request.travelerInfo.resolved_traveler_count or 1
+    children = len(request.travelerInfo.kidsAges or [])
 
     logger.info("[flight_agent] Searching SerpAPI flights: %s → %s | out: %s | return: %s | adults: %d | children: %d",
                 origin, destination, departure, returning, adults, children)

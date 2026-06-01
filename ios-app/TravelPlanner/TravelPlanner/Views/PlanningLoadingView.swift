@@ -151,7 +151,8 @@ struct PlanningLoadingView: View {
         }
 
         if draft.travelerInfo.hasKids == true {
-            if let age = draft.travelerInfo.youngestTravelerAge, age <= 5 {
+            let youngestAge = draft.travelerInfo.kidsAges?.min()
+            if let age = youngestAge, age <= 5 {
                 result.append("Filtering for toddler-friendly...")
             } else {
                 result.append("Filtering for family-friendly...")
@@ -205,7 +206,7 @@ struct PlanningLoadingView: View {
     let draft = TripRequestDraft(
         route: Route(origin: "SFO", destination: "Paris"),
         schedule: Schedule(departureDate: departure, returnDate: returnDate),
-        travelerInfo: TravelerInfo(travelerCount: 3, hasKids: true, youngestTravelerAge: 3),
+        travelerInfo: TravelerInfo(adultCount: 2, hasKids: true, kidsAges: [3]),
         transportPreferences: TransportPreferences(),
         lodgingPreferences: LodgingPreferences(hotel: true)
     )

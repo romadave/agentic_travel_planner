@@ -11,7 +11,7 @@ import Foundation
 // destination
 // origin
 // travelDates
-// travelerCount
+// adultCount
 // hasKids
 // youngestTravelerAge
 // transportMode
@@ -34,13 +34,14 @@ struct TripRequestEvaluator {
             missing.append(.travelDates)
         }
 
-        let travelerCount = draft.travelerInfo.travelerCount ?? 0
+        let adultCount = draft.travelerInfo.adultCount ?? 0
         let hasKidsValue = draft.travelerInfo.hasKids
-        // Combine travelerCount, hasKids, and youngestTravelerAge into a single step
-        if travelerCount <= 0 || hasKidsValue == nil {
-            missing.append(.travelerCount)
-        } else if hasKidsValue == true && draft.travelerInfo.youngestTravelerAge == nil {
-            missing.append(.travelerCount)
+        let kidAges = draft.travelerInfo.kidsAges
+        // Combine adultCount, hasKids, and kidsAges into a single step
+        if adultCount <= 0 || hasKidsValue == nil {
+            missing.append(.adultCount)
+        } else if hasKidsValue == true && (kidAges ?? []).isEmpty {
+            missing.append(.adultCount)
         }
 
         let flightSelected = draft.transportPreferences.flightSelected ?? false

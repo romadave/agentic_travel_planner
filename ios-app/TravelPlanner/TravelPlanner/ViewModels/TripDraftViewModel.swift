@@ -96,12 +96,9 @@ extension TripDraftViewModel {
     }
 
     // MARK: - Traveler Info
-    func updateTravelerCount(_ count: Int?) {
+    func updateAdultCount(_ count: Int?) {
         if tripDraft == nil { tripDraft = TripRequestDraft() }
-        if tripDraft?.travelerInfo == nil {
-            tripDraft?.travelerInfo = TravelerInfo()
-        }
-        tripDraft?.travelerInfo.travelerCount = count
+        tripDraft?.travelerInfo.adultCount = count
     }
 
     func updateHasKids(_ hasKids: Bool?) {
@@ -109,9 +106,9 @@ extension TripDraftViewModel {
         tripDraft?.travelerInfo.hasKids = hasKids
     }
 
-    func updateYoungestTravelerAge(_ age: Int?) {
+    func updateKidsAges(_ ages: [Int]?) {
         if tripDraft == nil { tripDraft = TripRequestDraft() }
-        tripDraft?.travelerInfo.youngestTravelerAge = age
+        tripDraft?.travelerInfo.kidsAges = ages
     }
 
     // MARK: - Transport Preferences

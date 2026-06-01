@@ -13,6 +13,7 @@ struct ParsedPromptResult : Codable, Equatable, Sendable {
     var travelerInfo: TravelerInfo = TravelerInfo()
     var notes: [String]?
     var assumptions: [String]?
+    var tripPreferences: String?
     
     init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -24,5 +25,6 @@ struct ParsedPromptResult : Codable, Equatable, Sendable {
             self.travelerInfo = try container.decodeIfPresent(TravelerInfo.self, forKey: .travelerInfo) ?? TravelerInfo()
             self.notes = try container.decodeIfPresent([String].self, forKey: .notes) ?? []
             self.assumptions = try container.decodeIfPresent([String].self, forKey: .assumptions) ?? []
+            self.tripPreferences = try container.decodeIfPresent(String.self, forKey: .tripPreferences)
         }
 }

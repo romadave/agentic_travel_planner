@@ -164,7 +164,7 @@ struct ItinerariesView: View {
                         resultVM: resultVM,
                         optionNumber: option.optionNumber,
                         destination: destination,
-                        travelerCount: draft.travelerInfo.travelerCount ?? 1
+                        travelerCount: draft.travelerInfo.travelerCount
                     )
                 } label: {
                     itineraryCard(option)

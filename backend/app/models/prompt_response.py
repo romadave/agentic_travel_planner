@@ -31,9 +31,23 @@ class TransportPreferences(BaseModel):
     privateCabinPreferred: Optional[bool] = None
 
 class TravelerInfo(BaseModel):
-    travelerCount: Optional[int] = None
+    adultCount: Optional[int] = None
     hasKids: Optional[bool] = None
-    youngestTravelerAge: Optional[int] = None
+    kidsAges: Optional[List[int]] = None
+    travelerCount: Optional[int] = None  # sent by iOS as a computed convenience field
+
+    @property
+    def resolved_traveler_count(self) -> int:
+        if self.travelerCount is not None:
+            return self.travelerCount
+        kids = len(self.kidsAges) if self.kidsAges else 0
+        return (self.adultCount or 0) + kids
+
+    @property
+    def youngest_age(self) -> Optional[int]:
+        if self.kidsAges:
+            return min(self.kidsAges)
+        return None
 
 class ParsedPromptResult(BaseModel):
     route: ParsedPromptRoute = ParsedPromptRoute()
@@ -41,6 +55,7 @@ class ParsedPromptResult(BaseModel):
     lodgingPreferences: LodgingPreferences = LodgingPreferences()
     transportPreferences: TransportPreferences = TransportPreferences()
     travelerInfo: TravelerInfo = TravelerInfo()
+    tripPreferences: Optional[str] = None
 
 class ParseTripPromptResponse(BaseModel):
     prompt: str

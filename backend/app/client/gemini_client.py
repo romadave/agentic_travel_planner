@@ -15,6 +15,9 @@ def _is_retryable(exc: Exception) -> bool:
         return True
     return False
 
+def _is_503(exc: Exception) -> bool:
+    return isinstance(exc, ServerError) and getattr(exc, "code", None) == 503
+
 _MAX_RETRIES = 3
 _BACKOFF_BASE = 2.0
 
@@ -26,7 +29,8 @@ class GeminiClient:
         if not api_key:
             raise ValueError("GEMINI_API_KEY is not set")
         self._client = genai.Client(api_key=api_key)
-        self.default_model = "gemini-3.5-flash"
+        self.default_model = "gemini-2.5-pro"
+        self.fallback_model = "gemini-2.5-flash"
 
     async def generate_text(
         self,
@@ -34,9 +38,12 @@ class GeminiClient:
         user_prompt: str,
         system_prompt: str,
         model: str | None = None,
+        fallback_model: str | None = None,
         thinking_level: str = "medium",
     ) -> str:
         target_model = model or self.default_model
+        fb_model = fallback_model if fallback_model is not None else self.fallback_model
+        switched_to_fallback = False
         last_exc: Exception | None = None
 
         config = types.GenerateContentConfig(
@@ -56,6 +63,15 @@ class GeminiClient:
             except (ServerError, ClientError) as exc:
                 if not _is_retryable(exc):
                     raise
+                if _is_503(exc) and fb_model and not switched_to_fallback:
+                    logger.warning(
+                        "[gemini_client] 503 on %s — switching to fallback %s immediately",
+                        target_model, fb_model,
+                    )
+                    target_model = fb_model
+                    switched_to_fallback = True
+                    last_exc = exc
+                    continue
                 last_exc = exc
                 wait = _BACKOFF_BASE ** attempt
                 logger.warning(

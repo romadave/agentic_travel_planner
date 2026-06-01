@@ -16,7 +16,8 @@ Rules:
 4. stops[] must list every unique area with the correct number of nights — this drives hotel search.
 5. area names in stops[] must be specific enough for a hotel search (e.g. "Lahaina, Maui" not just "Maui").
 6. If tripPreferences are provided, honor them — e.g. if the family wants a balance of grown-up and kid-friendly activities, each day should include at least one activity aimed at adults (dining, scenery, culture) alongside child-friendly ones.
-7. Return valid JSON only. No markdown, no explanation.
+7. For the "notes" field: if multiple children with different ages are provided, write one tip per child using the format "Age X: <tip>". Example: "Age 3: stick to the shallow splash area. Age 7: can try the waterslide with an adult." If only one child, write a single tip for that age. Also include a fun extra exploration tip for adults (hidden gems, best time to visit, local insider advice). Example : "Adult : Best place to view this at sunset time".
+8. Return valid JSON only. No markdown, no explanation.
 
 JSON schema:
 {
@@ -34,7 +35,7 @@ JSON schema:
             "activity": "What to do",
             "place": "Specific place name or null",
             "foodSuggestion": "Where/what to eat or null",
-            "notes": "Toddler tips or null",
+            "notes": "Age-specific tips per child e.g. 'Age 3: shallow pool only. Age 7: try the trail.' Also include tips for adults, an insider exploration.",
             "includeNap": false
           },
           "afternoon": { ... },
@@ -112,7 +113,8 @@ def _parse_response(raw: str) -> list[dict]:
 async def generate_itinerary_options(request: FinalTripRequest) -> list[ItineraryDraft]:
     user_prompt = _build_user_prompt(request)
     raw = await gemini_client.generate_text(
-        model="gemini-3.5-flash",
+        model="gemini-2.5-pro",
+        fallback_model="gemini-2.5-flash",
         user_prompt=user_prompt,
         system_prompt=SYSTEM_PROMPT,
         thinking_level="high",

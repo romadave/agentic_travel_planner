@@ -265,7 +265,7 @@ struct ItineraryView: View {
                         .font(T.captionSm)
                         .tracking(0.8)
                         .foregroundColor(C.textSecondary)
-                    Text("Arrival & \(day.area)")
+                    Text("\(day.area)")
                         .font(.system(size: 20, weight: .regular, design: .serif))
                         .italic()
                         .foregroundColor(C.textPrimary)
@@ -275,13 +275,13 @@ struct ItineraryView: View {
             // Activities timeline
             VStack(alignment: .leading, spacing: 0) {
                 if let morning = day.morning {
-                    activityRow(time: "09:00", type: morning.activity ?? "Morning", place: morning.place ?? "", showLine: day.afternoon != nil || day.evening != nil)
+                    activityRow(time: "09:00", type: morning.activity ?? "Morning", place: morning.place ?? "", showLine: day.afternoon != nil || day.evening != nil, notes: morning.notes)
                 }
                 if let afternoon = day.afternoon {
-                    activityRow(time: "14:00", type: afternoon.activity ?? "Afternoon", place: afternoon.place ?? "", showLine: day.evening != nil)
+                    activityRow(time: "14:00", type: afternoon.activity ?? "Afternoon", place: afternoon.place ?? "", showLine: day.evening != nil, notes: afternoon.notes)
                 }
                 if let evening = day.evening {
-                    activityRow(time: "19:00", type: evening.activity ?? "Evening", place: evening.place ?? "", showLine: false)
+                    activityRow(time: "19:00", type: evening.activity ?? "Evening", place: evening.place ?? "", showLine: false, notes: evening.notes)
                 }
             }
 
@@ -293,7 +293,7 @@ struct ItineraryView: View {
         .padding(.vertical, 8)
     }
 
-    private func activityRow(time: String, type: String, place: String, showLine: Bool) -> some View {
+    private func activityRow(time: String, type: String, place: String, showLine: Bool, notes: String? = nil) -> some View {
         HStack(alignment: .top, spacing: 14) {
             // Timeline dot + line
             VStack(spacing: 0) {
@@ -325,6 +325,12 @@ struct ItineraryView: View {
                 Text(place)
                     .font(T.bodyMedium)
                     .foregroundColor(C.textPrimary)
+
+                if let notes, !notes.isEmpty {
+                    Text(notes)
+                        .font(T.captionMd)
+                        .foregroundColor(C.textSecondary)
+                }
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -344,7 +350,7 @@ struct ItineraryView: View {
     private var bookButton: some View {
         Button(action: { showShareSheet = true }) {
             HStack {
-                Text("Book this trip — $\(totalPrice)")
+                Text("Share this trip — $\(totalPrice)")
                     .font(.system(size: 16, weight: .semibold))
                 Spacer()
                 Image(systemName: "arrow.right")
@@ -386,8 +392,8 @@ struct ItineraryView: View {
 #Preview("Itinerary Detail") {
     let sampleDays = [
         TripDay(dayNumber: 1, date: "2026-07-12", area: "Alfama",
-                morning: PartOfDay(activity: "Check-in", place: "Boutique apt · Príncipe Real", foodSuggestion: nil, notes: nil, includeNap: false),
-                afternoon: PartOfDay(activity: "Walk", place: "Miradouro de São Pedro sunset", foodSuggestion: nil, notes: nil, includeNap: false),
+                morning: PartOfDay(activity: "Check-in", place: "Boutique apt · Príncipe Real", foodSuggestion: nil, notes: "Rest up", includeNap: false),
+                afternoon: PartOfDay(activity: "Walk", place: "Miradouro de São Pedro sunset", foodSuggestion: nil, notes: "Wonderful place to walk", includeNap: false),
                 evening: PartOfDay(activity: "Dinner", place: "Tasca Zé dos Cornos (kid-friendly)", foodSuggestion: nil, notes: nil, includeNap: false)),
         TripDay(dayNumber: 2, date: "2026-07-13", area: "Belém",
                 morning: PartOfDay(activity: "Visit", place: "Jerónimos Monastery", foodSuggestion: nil, notes: nil, includeNap: true),

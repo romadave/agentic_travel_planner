@@ -327,9 +327,12 @@ struct ItineraryView: View {
                     .foregroundColor(C.textPrimary)
 
                 if let notes, !notes.isEmpty {
-                    Text(notes)
-                        .font(T.captionMd)
-                        .foregroundColor(C.textSecondary)
+                    let tips = splitNotes(notes)
+                    ForEach(tips, id: \.self) { tip in
+                        Text(tip)
+                            .font(T.captionMd)
+                            .foregroundColor(C.textSecondary)
+                    }
                 }
             }
             .padding(12)
@@ -368,6 +371,45 @@ struct ItineraryView: View {
 
     // MARK: - Helpers
 
+    /// Splits a notes string into separate tips.
+    /// Looks for known prefixes like "Age 3:", "Traveler Tip:", "Insider Tip:", "Adults:" etc.
+    /// and splits at each occurrence so each tip gets its own line.
+    private func splitNotes(_ notes: String) -> [String] {
+        // Pattern: split before known tip prefixes
+        // Matches: "Age \d+:", "Traveler Tip:", "Insider Tip:", "Adults:", "Toddler Tip:", "Family Tip:"
+        let pattern = #"(?=(?:Age \d+|Traveler Tip|Insider Tip|Adults?|Toddler Tip|Family Tip|Kids? Tip)\s*:)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return [notes]
+        }
+
+        let nsString = notes as NSString
+        let range = NSRange(location: 0, length: nsString.length)
+        let matches = regex.matches(in: notes, range: range)
+
+        // If no tip prefixes found, return as-is
+        if matches.isEmpty { return [notes.trimmingCharacters(in: .whitespaces)] }
+
+        var tips: [String] = []
+        var lastStart = 0
+
+        for match in matches {
+            let matchLocation = match.range.location
+            if matchLocation > lastStart {
+                let chunk = nsString.substring(with: NSRange(location: lastStart, length: matchLocation - lastStart))
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if !chunk.isEmpty { tips.append(chunk) }
+            }
+            lastStart = matchLocation
+        }
+
+        // Grab the last segment
+        let remaining = nsString.substring(from: lastStart)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if !remaining.isEmpty { tips.append(remaining) }
+
+        return tips
+    }
+
     private func formattedShortDate(_ dateString: String) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
@@ -392,7 +434,7 @@ struct ItineraryView: View {
 #Preview("Itinerary Detail") {
     let sampleDays = [
         TripDay(dayNumber: 1, date: "2026-07-12", area: "Alfama",
-                morning: PartOfDay(activity: "Check-in", place: "Boutique apt · Príncipe Real", foodSuggestion: nil, notes: "Rest up", includeNap: false),
+                morning: PartOfDay(activity: "Check-in", place: "Boutique apt · Príncipe Real", foodSuggestion: nil, notes: "Age 3: Nap in the car. Adults : beautiful scenary", includeNap: false),
                 afternoon: PartOfDay(activity: "Walk", place: "Miradouro de São Pedro sunset", foodSuggestion: nil, notes: "Wonderful place to walk", includeNap: false),
                 evening: PartOfDay(activity: "Dinner", place: "Tasca Zé dos Cornos (kid-friendly)", foodSuggestion: nil, notes: nil, includeNap: false)),
         TripDay(dayNumber: 2, date: "2026-07-13", area: "Belém",

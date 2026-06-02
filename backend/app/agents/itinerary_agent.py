@@ -117,7 +117,7 @@ async def generate_itinerary_options(request: FinalTripRequest) -> list[Itinerar
         fallback_model="gemini-2.5-flash",
         user_prompt=user_prompt,
         system_prompt=SYSTEM_PROMPT,
-        thinking_level="high",
+        thinking_budget=8000,
     )
     options_data = _parse_response(raw)
     return [ItineraryDraft(**option) for option in options_data]

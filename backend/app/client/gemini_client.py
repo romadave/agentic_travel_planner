@@ -40,7 +40,7 @@ class GeminiClient:
         system_prompt: str,
         model: str | None = None,
         fallback_model: str | None = None,
-        thinking_level: str | None = None,
+        thinking_budget: int | None = None,
     ) -> str:
         target_model = model or self.default_model
         fb_model = fallback_model if fallback_model is not None else self.fallback_model
@@ -49,7 +49,7 @@ class GeminiClient:
 
         config = types.GenerateContentConfig(
             system_instruction=system_prompt,
-            thinking_config=types.ThinkingConfig(thinking_level=thinking_level) if thinking_level else None,
+            thinking_config=types.ThinkingConfig(thinking_budget=thinking_budget) if thinking_budget else None,
         )
 
         for attempt in range(_MAX_RETRIES):

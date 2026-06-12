@@ -2,7 +2,6 @@ import json
 from app.client.gemini_client import gemini_client
 from app.models.final_trip_request import FinalTripRequest, ItineraryDraft
 
-# TODO : make dynamic user prompt based on user context and not a static one. lets start with this first
 SYSTEM_PROMPT = """
 You are an expert family travel planner specializing in trips with young children and toddlers.
 
@@ -117,7 +116,6 @@ async def generate_itinerary_options(request: FinalTripRequest) -> list[Itinerar
         fallback_model="gemini-2.5-flash",
         user_prompt=user_prompt,
         system_prompt=SYSTEM_PROMPT,
-        thinking_budget=8000,
     )
     options_data = _parse_response(raw)
     return [ItineraryDraft(**option) for option in options_data]

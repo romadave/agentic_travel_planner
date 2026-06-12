@@ -8,6 +8,16 @@ from app.agents.flight_agent import fetch_flights
 from app.agents.hotel_agent import fetch_hotels_for_itineraries
 from app.agents.ranking_agent import rank_flights, rank_hotels
 from app.models.final_trip_request import FinalTripRequest
+from app.models.final_trip_request import ItineraryDraft
+
+# flights - fetch and rank call
+async def fetch_and_rank_flights(request: FinalTripRequest):
+    flights_raw = await fetch_flights(request)
+    return await rank_flights(request, flights_raw)
+
+async def fetch_and_rank_hotels(request: FinalTripRequest, itinerary_drafts: list[ItineraryDraft]):
+    hotels_by_area = await fetch_hotels_for_itineraries(itinerary_drafts, request)
+    return await rank_hotels(request, itinerary_drafts, hotels_by_area)
 
 async def plan_trip(request: FinalTripRequest) -> AsyncGenerator[str, None]:
     # Step 0: Normalize destination before anything else runs.
@@ -17,9 +27,10 @@ async def plan_trip(request: FinalTripRequest) -> AsyncGenerator[str, None]:
     request.route.resolvedDestination = resolved.get("resolvedDestination") or request.route.destination
     request.route.gatewayAirport = resolved.get("gatewayAirport") or ""
 
-    # Step 1: destination info + itineraries run in parallel (independent)
+    # Step 1: destination info + itineraries + flights run in parallel (independent)
     destination_task = asyncio.create_task(generate_destination_info(request))
     itinerary_task = asyncio.create_task(generate_itinerary_options(request))
+    flight_task = asyncio.create_task(fetch_and_rank_flights(request))
 
     destination_info = await destination_task
     yield json.dumps({"type": "destinationInfo", **destination_info.model_dump()})
@@ -41,16 +52,7 @@ async def plan_trip(request: FinalTripRequest) -> AsyncGenerator[str, None]:
         ]
     })
 
-    # Step 2: flights + hotels fetch and rank in parallel
-    async def fetch_and_rank_flights():
-        flights_raw = await fetch_flights(request)
-        return await rank_flights(request, flights_raw)
-
-    async def fetch_and_rank_hotels():
-        hotels_by_area = await fetch_hotels_for_itineraries(itinerary_drafts, request)
-        return await rank_hotels(request, itinerary_drafts, hotels_by_area)
-
-    flight_task = asyncio.create_task(fetch_and_rank_flights())
+    #Step 2 : hotels run after
     hotel_task = asyncio.create_task(fetch_and_rank_hotels())
 
     ranked_flights = await flight_task
